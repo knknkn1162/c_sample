@@ -19,6 +19,8 @@ int main(void) {
 
   while(1) {
     ret = sleep(3600);
+    // return EINTR=Interrupted system call with SIGINT even if setting SA_RESTART,
+    // so `errno` == EINTR` condition is required
     if(ret != 0 && errno == EINTR) { continue; }
     break;
   }
