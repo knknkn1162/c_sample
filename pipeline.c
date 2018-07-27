@@ -34,8 +34,6 @@ int    func_3		( data_t * data );
 int    func_4		( data_t * data );
 int    func_5		( data_t * data );
 
-#define FUNC(i) func_##i
-
 int main(void) {
     pipe_t my_pipe;
     char   line[256];
@@ -54,12 +52,22 @@ int main(void) {
       pthread_cond_init(&tmp->cond, 0);
 
       tmp->index = i + 1;
-      tmp->data_ready = 0;
       tmp->result = 0;
       tmp->data = NULL;
-      tmp->thread = NULL;
+      tmp->thread = 0;
       tmp->next = NULL;
-      tmp->func = FUNC(1);
+      switch(i) {
+        case 0:
+          tmp->func = func_1; break;
+        case 1:
+          tmp->func = func_2; break;
+        case 2:
+          tmp->func = func_3; break;
+        case 3:
+          tmp->func = func_4; break;
+        case 4:
+          tmp->func = func_5; break;
+      }
       *stage = tmp;
       stage = &((*stage)->next);
     }
@@ -91,6 +99,8 @@ int main(void) {
       tmp->data_ready = 1;
       pthread_cond_signal(&tmp->cond);
       pthread_mutex_unlock(&tmp->mutex);
+
+      fprintf(stdout, "...\n");
     }
 
     for(tmp = my_pipe.head; tmp; tmp = tmp->next) {
@@ -116,7 +126,7 @@ void * pipe_thread( void * arg ) {
           pthread_cond_wait( &stage->cond, &stage->mutex );
       }
 
-      if( stage->data == 0 ) {
+      if( stage->data == NULL ) {
           pthread_mutex_unlock( &stage->mutex );
           break;
       }
@@ -126,15 +136,16 @@ void * pipe_thread( void * arg ) {
       }
 
       if( stage -> next ) {
-        pthread_mutex_lock( &stage -> next -> mutex );
-        stage -> next -> data       = stage -> data;
-        stage -> next -> result     = stage -> result;
-        stage -> next -> data_ready = 1;
+        pthread_mutex_lock( &stage->next->mutex );
+        stage->next->data       = stage->data;
+        stage->next->result     = stage->result;
+        stage->next->data_ready = 1;
         pthread_cond_signal ( &stage -> next -> cond );
         pthread_mutex_unlock( &stage -> next -> mutex );
       } else {
         free( stage -> data -> string );
         free( stage -> data );
+        write(STDOUT_FILENO, "end\n", 5);
       }
 
       stage->data = 0;
