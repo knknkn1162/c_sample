@@ -13,8 +13,8 @@ typedef struct data_tag {
 typedef struct stage_tag {
     pthread_mutex_t	mutex;
     pthread_cond_t	cond;
-    int			index;
-    int			data_ready;
+    int index;
+    int data_ready;
     int			result;
     data_t *		data;
     int			( * func )( data_t * );
@@ -80,7 +80,6 @@ int main(void) {
 
     while( 1 ) {
       printf( "Data ( string or \"quit\" ) --> " );
-
       fgets( line, sizeof( line ), stdin );
       if( strlen( line ) <= 1 ) {
           continue;
@@ -123,6 +122,7 @@ void * pipe_thread( void * arg ) {
     while( 1 ) {
       pthread_mutex_lock( &stage->mutex );
       while( stage->data_ready == 0 ) {
+          fprintf(stdout, "\nREADY: stage %d\n", stage->index);
           pthread_cond_wait( &stage->cond, &stage->mutex );
       }
 
@@ -132,7 +132,9 @@ void * pipe_thread( void * arg ) {
       }
 
       if( stage->result == 0 ) {
-          stage->result = stage->func( stage->data );
+          printf("stage %d start[%s]\n", stage->index, stage->data->string);
+          stage->result = stage->func(stage->data );
+          printf("stage %d end[%s]\n", stage->index, stage->data->string);
       }
 
       if( stage -> next ) {
@@ -145,7 +147,7 @@ void * pipe_thread( void * arg ) {
       } else {
         free( stage -> data -> string );
         free( stage -> data );
-        write(STDOUT_FILENO, "end\n", 5);
+        write(STDOUT_FILENO, "end\n", 6);
       }
 
       stage->data = 0;
@@ -159,36 +161,26 @@ void * pipe_thread( void * arg ) {
 
 
 int func_1( data_t * data ) {
-    printf( "func_1:[%s] start.\n", data -> string );
     sleep( 1 );
-    printf( "func_1:[%s] end.\n", data -> string );
     return 0;
 }
 
 int func_2( data_t * data ) {
-    printf( "func_2:[%s] start.\n", data -> string );
     sleep( 1 );
-    printf( "func_2:[%s] end.\n", data -> string );
     return 0;
 }
 
 int func_3( data_t * data ) {
-    printf( "func_3:[%s] start.\n", data -> string );
     sleep( 1 );
-    printf( "func_3:[%s] end.\n", data -> string );
     return 0;
 }
 
 int func_4( data_t * data ) {
-    printf( "func_4:[%s] start.\n", data -> string );
     sleep( 1 );
-    printf( "func_4:[%s] end.\n", data -> string );
     return 0;
 }
 
 int func_5( data_t * data ) {
-    printf( "func_5:[%s] start.\n", data -> string );
     sleep( 1 );
-    printf( "func_5:[%s] end.\n", data -> string );
     return 0;
 }
