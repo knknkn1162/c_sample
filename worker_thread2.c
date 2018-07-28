@@ -26,19 +26,20 @@ typedef struct tpool {
   pthread_cond_t queue_not_full;
 } tpool_t;
 
-int tpool_init(tpool_t*);
+int tpool_init(tpool_t**);
 int tpool_destroy(tpool_t*);
 void* tpool_thread(void* arg);
 void* add_work(tpool_t* p_tpool, p_routine_t routine, int index, void* arg);
 
 void* sample_work(void* arg) {
   int m = *(int*)arg;
+  sleep(5);
   fprintf(stdout, "%d\n", m);
   return NULL;
 }
 
 int main(void) {
-  tpool_t tpool;
+  tpool_t* tpool;
   int m;
   int index = 0;
   char buf[256];
@@ -59,16 +60,16 @@ int main(void) {
     }
     m = atoi(buf);
     fprintf(stdout, "number is:%d\n", m);
-    add_work(&tpool, sample_work, index++, (void*)&m);
+    add_work(tpool, sample_work, index++, (void*)&m);
   }
 
-  tpool_destroy(&tpool);
+  tpool_destroy(tpool);
   return 0;
 }
 
-int tpool_init(tpool_t* p_tpool) {
+int tpool_init(tpool_t** pp_tpool) {
   int i;
-  p_tpool = (tpool_t*)malloc(sizeof(tpool_t));
+  tpool_t* p_tpool = (tpool_t*)malloc(sizeof(tpool_t));
 
   p_tpool->cur_queue_size = 0;
   p_tpool->queue_head = NULL;
@@ -80,6 +81,8 @@ int tpool_init(tpool_t* p_tpool) {
   for(i = 0; i < NUM_THREADS; i++) {
     pthread_create(&(p_tpool->threads[i]), NULL, tpool_thread, (void*)p_tpool);
   }
+
+  *pp_tpool = p_tpool;
   return 0;
 }
 
