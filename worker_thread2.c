@@ -12,6 +12,7 @@ typedef void* (*p_routine_t)(void*);
 typedef struct tpool_work {
   p_routine_t routine;
   void* arg;
+  int index;
   struct tpool_work* next;
 } tpool_work_t;
 
@@ -28,7 +29,7 @@ typedef struct tpool {
 int tpool_init(tpool_t*);
 int tpool_destroy(tpool_t*);
 void* tpool_thread(void* arg);
-void* add_work(tpool_t* p_tpool, p_routine_t routine, void* arg);
+void* add_work(tpool_t* p_tpool, p_routine_t routine, int index, void* arg);
 
 void* sample_work(void* arg) {
   int m = *(int*)arg;
@@ -39,6 +40,7 @@ void* sample_work(void* arg) {
 int main(void) {
   tpool_t tpool;
   int m;
+  int index = 0;
   char buf[256];
   if(tpool_init(&tpool) < 0) {
     perror("tpool_init error");
@@ -46,6 +48,7 @@ int main(void) {
   }
 
   while(1) {
+    write(STDOUT_FILENO, "put number -> ", 15);
     fgets( buf, sizeof( buf ), stdin );
 
     if( strlen( buf ) <= 1 ) {
@@ -55,7 +58,8 @@ int main(void) {
         break;
     }
     m = atoi(buf);
-    add_work(&tpool, sample_work, (void*)&m);
+    fprintf(stdout, "number is:%d\n", m);
+    add_work(&tpool, sample_work, index++, (void*)&m);
   }
 
   tpool_destroy(&tpool);
@@ -70,8 +74,8 @@ int tpool_init(tpool_t* p_tpool) {
   p_tpool->queue_head = NULL;
   p_tpool->queue_tail = NULL;
   pthread_mutex_init(&p_tpool->queue_lock, NULL);
-  pthread_cond_init(&(p_tpool->queue_not_empty), NULL);
-  pthread_cond_init(&(p_tpool->queue_not_full), NULL);
+  pthread_cond_init(&p_tpool->queue_not_empty, NULL);
+  pthread_cond_init(&p_tpool->queue_not_full, NULL);
 
   for(i = 0; i < NUM_THREADS; i++) {
     pthread_create(&(p_tpool->threads[i]), NULL, tpool_thread, (void*)p_tpool);
@@ -85,13 +89,15 @@ int tpool_destroy(tpool_t* p_tpool) {
 }
 
 void* tpool_thread(void* arg) {
+  tpool_t* p_tpool = (tpool_t*)arg;
+  fprintf(stdout, "current queue size: %d\n", p_tpool->cur_queue_size);
   while(1) {
     // TODO
   }
   return NULL;
 }
 
-void* add_work(tpool_t* p_tpool, p_routine_t routine, void* arg) {
+void* add_work(tpool_t* p_tpool, p_routine_t routine, int index, void* arg) {
   tpool_work_t* workp;
   pthread_mutex_lock(&p_tpool->queue_lock);
   if(p_tpool->cur_queue_size == MAX_QUEUE_SIZE) {
@@ -100,12 +106,13 @@ void* add_work(tpool_t* p_tpool, p_routine_t routine, void* arg) {
 
   workp = (tpool_work_t*)malloc(sizeof(tpool_work_t));
   workp->routine = routine;
+  workp->index = index;
   workp->arg = arg;
   workp->next = NULL;
 
   if(p_tpool->cur_queue_size == 0) {
     p_tpool->queue_tail = p_tpool->queue_head = workp;
-    pthread_cond_signal(&p_tpool->queue_not_empty);
+    //pthread_cond_signal(&p_tpool->queue_not_empty);
   } else {
     p_tpool->queue_tail = workp;
     p_tpool->queue_tail->next = p_tpool->queue_head;
