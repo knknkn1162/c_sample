@@ -12,7 +12,6 @@ typedef void* (*p_routine_t)(void*);
 typedef struct tpool_work {
   p_routine_t routine;
   void* arg;
-  int index;
   struct tpool_work* next;
 } tpool_work_t;
 
@@ -29,19 +28,18 @@ typedef struct tpool {
 int tpool_init(tpool_t**);
 int tpool_destroy(tpool_t*);
 void* tpool_thread(void* arg);
-void* add_work(tpool_t* p_tpool, p_routine_t routine, int index, void* arg);
+void* add_work(tpool_t* p_tpool, p_routine_t routine, void* arg);
 
 void* sample_work(void* arg) {
   int m = *(int*)arg;
   sleep(5);
-  fprintf(stdout, "%d\n", m);
+  fprintf(stdout, "answer = %d\n", m);
   return NULL;
 }
 
 int main(void) {
   tpool_t* tpool;
   int m;
-  int index = 0;
   char buf[256];
   if(tpool_init(&tpool) < 0) {
     perror("tpool_init error");
@@ -60,7 +58,7 @@ int main(void) {
     }
     m = atoi(buf);
     fprintf(stdout, "number is:%d\n", m);
-    add_work(tpool, sample_work, index++, (void*)&m);
+    add_work(tpool, sample_work, (void*)&m);
   }
 
   tpool_destroy(tpool);
@@ -122,7 +120,7 @@ void* tpool_thread(void* arg) {
   return NULL;
 }
 
-void* add_work(tpool_t* p_tpool, p_routine_t routine, int index, void* arg) {
+void* add_work(tpool_t* p_tpool, p_routine_t routine, void* arg) {
   tpool_work_t* workp;
   pthread_mutex_lock(&p_tpool->queue_lock);
   if(p_tpool->cur_queue_size == MAX_QUEUE_SIZE) {
@@ -131,7 +129,6 @@ void* add_work(tpool_t* p_tpool, p_routine_t routine, int index, void* arg) {
 
   workp = (tpool_work_t*)malloc(sizeof(tpool_work_t));
   workp->routine = routine;
-  workp->index = index;
   workp->arg = arg;
   workp->next = NULL;
 
