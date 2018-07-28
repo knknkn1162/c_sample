@@ -16,7 +16,7 @@ typedef struct tpool_work {
 } tpool_work_t;
 
 typedef struct tpool {
-  pthread_t threads[NUM_THREADS];
+  pthread_t workers[NUM_THREADS];
   int cur_queue_size;
   tpool_work_t* queue_head;
   tpool_work_t* queue_tail;
@@ -72,12 +72,13 @@ int tpool_init(tpool_t** pp_tpool) {
   p_tpool->cur_queue_size = 0;
   p_tpool->queue_head = NULL;
   p_tpool->queue_tail = NULL;
+
   pthread_mutex_init(&p_tpool->queue_lock, NULL);
   pthread_cond_init(&p_tpool->queue_not_empty, NULL);
   pthread_cond_init(&p_tpool->queue_not_full, NULL);
 
   for(i = 0; i < NUM_THREADS; i++) {
-    pthread_create(&(p_tpool->threads[i]), NULL, tpool_thread, (void*)p_tpool);
+    pthread_create(&(p_tpool->workers[i]), NULL, tpool_thread, (void*)p_tpool);
   }
 
   *pp_tpool = p_tpool;
@@ -90,14 +91,23 @@ int tpool_destroy(tpool_t* p_tpool) {
 }
 
 void* tpool_thread(void* arg) {
+  // thread number
+  int idx;
   tpool_t* p_tpool = (tpool_t*)arg;
   tpool_work_t* my_workp;
+
+  for(idx = 0; idx < NUM_THREADS; idx++) {
+    if(p_tpool->workers[idx] == pthread_self()) {
+      break;
+    }
+  }
   while(1) {
     pthread_mutex_lock(&p_tpool->queue_lock);
+
     while(p_tpool->cur_queue_size == 0) {
       fprintf(stdout, "ready tpool_thread\n");
       pthread_cond_wait(&p_tpool->queue_not_empty, &p_tpool->queue_lock);
-      fprintf(stdout, "start tpool_thread %d\n", p_tpool->cur_queue_size);
+      fprintf(stdout, "start tpool_thread %d\n", idx);
     }
 
     my_workp = p_tpool->queue_head;
