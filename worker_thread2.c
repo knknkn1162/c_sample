@@ -39,14 +39,17 @@ void* sample_work(void* arg) {
 
 int main(void) {
   tpool_t* tpool;
-  int m;
+  int* m;
   char buf[256];
+
   if(tpool_init(&tpool) < 0) {
     perror("tpool_init error");
     exit(1);
   }
 
   while(1) {
+    // generate resources
+    m = malloc(sizeof(int));
     write(STDOUT_FILENO, "put number -> ", 15);
     fgets( buf, sizeof( buf ), stdin );
 
@@ -56,13 +59,13 @@ int main(void) {
     if( memcmp( buf, "quit", 4 ) == 0 ) {
         break;
     }
-    m = strtol(buf, NULL, 10);
+    *m = strtol(buf, NULL, 10);
     if(m == 0) {
       fprintf(stdout, "cannot parse!!\n");
       continue;
     }
-    fprintf(stdout, "input :%d\n", m);
-    add_work(tpool, sample_work, (void*)&m);
+    fprintf(stdout, "input :%d\n", *m);
+    add_work(tpool, sample_work, (void*)m);
   }
 
   tpool_destroy(tpool);
