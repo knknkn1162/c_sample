@@ -24,6 +24,7 @@ typedef struct tpool {
   pthread_mutex_t queue_lock;
   pthread_cond_t queue_not_empty;
   pthread_cond_t queue_not_full;
+  int queue_shutdown;
 } tpool_t;
 
 int tpool_init(tpool_t**);
@@ -80,6 +81,7 @@ int tpool_init(tpool_t** pp_tpool) {
   p_tpool->cur_queue_size = 0;
   p_tpool->queue_head = NULL;
   p_tpool->queue_tail = NULL;
+  p_tpool->queue_shutdown = 0;
   pthread_mutex_init(&p_tpool->queue_lock, NULL);
   pthread_cond_init(&p_tpool->queue_not_empty, NULL);
   pthread_cond_init(&p_tpool->queue_not_full, NULL);
@@ -93,7 +95,35 @@ int tpool_init(tpool_t** pp_tpool) {
 }
 
 int tpool_destroy(tpool_t* p_tpool) {
-  printf("graceful shutdown...\n");
+  int i;
+  tpool_work_t* cur_nodep;
+
+  if(p_tpool->queue_shutdown) {
+    return 1;
+  }
+
+  fprintf(stdout, "graceful shutdown...\n");
+  for(i = 0; i < NUM_THREADS; i++) {
+    void* result;
+    // shutdown queue quickly
+    p_tpool->queue_shutdown = 1;
+
+    pthread_cancel(p_tpool->workers[i]);
+    pthread_join(p_tpool->workers[i], &result);
+    if(result != PTHREAD_CANCELED) {
+      continue;
+    } else {
+      fprintf(stdout, "successfully shutdown: %d\n", i);
+    }
+  }
+
+  // destroy worker. You cannot use for expression.
+  while(p_tpool->queue_head != NULL) {
+    cur_nodep = p_tpool->queue_head;
+    p_tpool->queue_head = p_tpool->queue_head->next;
+    free(cur_nodep->arg);
+    free(cur_nodep);
+  }
   return 0;
 }
 
@@ -151,6 +181,12 @@ void* add_work(tpool_t* p_tpool, p_routine_t routine, void* arg) {
   pthread_mutex_lock(&p_tpool->queue_lock);
   if(p_tpool->cur_queue_size == MAX_QUEUE_SIZE) {
     pthread_cond_wait(&p_tpool->queue_not_full, &p_tpool->queue_lock);
+  }
+
+  if(p_tpool->queue_shutdown == 1) {
+    fprintf(stdout, "shutdown queue..");
+    pthread_mutex_unlock(&p_tpool->queue_lock);
+    exit(1);
   }
 
   // create job
