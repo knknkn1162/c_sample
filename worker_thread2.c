@@ -31,7 +31,6 @@ int tpool_init(tpool_t**);
 int tpool_destroy(tpool_t*);
 void* tpool_thread(void* arg);
 void* add_work(tpool_t* p_tpool, p_routine_t routine, void* arg);
-void cleanup_handler(void* arg);
 
 void* sample_work(void* arg) {
   int m = *(int*)arg;
@@ -114,6 +113,18 @@ int tpool_destroy(tpool_t* p_tpool) {
   pthread_mutex_lock(&p_tpool->queue_lock);
   // shutdown queue quickly
   p_tpool->queue_shutdown = 1;
+  pthread_mutex_unlock(&p_tpool->queue_lock);
+
+  // wakeup WAIT status thread
+  pthread_cond_broadcast(&p_tpool->queue_not_empty);
+  pthread_cond_broadcast(&p_tpool->queue_not_full);
+
+  // shutdown workers
+  for(i = 0; i < NUM_THREADS; i++) {
+    pthread_join(p_tpool->workers[i], NULL);
+  }
+
+
   // destroy worker. You cannot use for expression.
   while(p_tpool->queue_head != NULL) {
     cur_nodep = p_tpool->queue_head;
@@ -124,23 +135,9 @@ int tpool_destroy(tpool_t* p_tpool) {
     // destroy job
     free(cur_nodep);
   }
-  pthread_mutex_unlock(&p_tpool->queue_lock);
   //printf(stdout, "queue_size: %d\n", p_tpool->cur_queue_size);
   printf("queue_size: %d\n", p_tpool->cur_queue_size);
 
-  // shutdown workers
-  for(i = 0; i < NUM_THREADS; i++) {
-    void* result;
-
-    pthread_cancel(p_tpool->workers[i]);
-    pthread_join(p_tpool->workers[i], &result);
-    if(result != PTHREAD_CANCELED) {
-      continue;
-    } else {
-      //fprintf(stdout, "successfully shutdown: %d\n", i);
-      printf("successfully shutdown: %d\n", i);
-    }
-  }
   // destroy thread pool resources
   free(p_tpool);
   //fprintf(stdout, "destroy thread pool resources!!\n");
@@ -160,14 +157,20 @@ void* tpool_thread(void* arg) {
     }
   }
   while(1) {
-    pthread_cleanup_push(cleanup_handler, p_tpool);
     pthread_mutex_lock(&p_tpool->queue_lock);
 
-    while(p_tpool->cur_queue_size == 0) {
+    while(p_tpool->cur_queue_size == 0 && p_tpool->queue_shutdown == 0) {
       //fprintf(stdout, "ready tpool_thread %d\n", idx);
       printf("ready tpool_thread %d\n", idx);
       pthread_cond_wait(&p_tpool->queue_not_empty, &p_tpool->queue_lock);
     }
+
+    if(p_tpool->queue_shutdown == 1) {
+      pthread_mutex_unlock(&p_tpool->queue_lock);
+      printf("end thread: %d\n", idx);
+      pthread_exit(NULL);
+    }
+
     //fprintf(stdout, "start tpool_thread %d: cur_queue_size: %d\n", idx, p_tpool->cur_queue_size);
     printf("start tpool_thread %d: cur_queue_size: %d\n", idx, p_tpool->cur_queue_size);
 
@@ -187,7 +190,6 @@ void* tpool_thread(void* arg) {
       pthread_cond_signal(&p_tpool->queue_not_full);
     }
     pthread_mutex_unlock(&p_tpool->queue_lock);
-    pthread_cleanup_pop(0);
 
 
     //fprintf(stdout, "* start routine: %d\n", idx);
@@ -200,11 +202,6 @@ void* tpool_thread(void* arg) {
     printf("* end routine: %d\n", idx);
   }
   return NULL;
-}
-
-void cleanup_handler(void* arg) {
-  tpool_t* p_tpool = (tpool_t*)arg;
-  pthread_mutex_unlock(&p_tpool->queue_lock);
 }
 
 void* add_work(tpool_t* p_tpool, p_routine_t routine, void* arg) {
