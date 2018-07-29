@@ -51,7 +51,7 @@ int main(void) {
   }
 
   while(1) {
-    // generate resources
+    // generate input resources
     m = malloc(sizeof(int));
     write(STDOUT_FILENO, "put number -> ", 15);
     fgets( buf, sizeof( buf ), stdin );
@@ -78,6 +78,7 @@ int main(void) {
 
 int tpool_init(tpool_t** pp_tpool) {
   int i;
+  // generate thread pool resources
   tpool_t* p_tpool = (tpool_t*)malloc(sizeof(tpool_t));
 
   p_tpool->cur_queue_size = 0;
@@ -113,10 +114,14 @@ int tpool_destroy(tpool_t* p_tpool) {
   while(p_tpool->queue_head != NULL) {
     cur_nodep = p_tpool->queue_head;
     p_tpool->queue_head = p_tpool->queue_head->next;
+    p_tpool->cur_queue_size--;
+    // destroy input
     free(cur_nodep->arg);
+    // destroy job
     free(cur_nodep);
   }
   pthread_mutex_unlock(&p_tpool->queue_lock);
+  fprintf(stdout, "queue_size: %d\n", p_tpool->cur_queue_size);
 
   // shutdown workers
   for(i = 0; i < NUM_THREADS; i++) {
@@ -130,6 +135,8 @@ int tpool_destroy(tpool_t* p_tpool) {
       fprintf(stdout, "successfully shutdown: %d\n", i);
     }
   }
+  // destroy thread pool resources
+  free(p_tpool);
   return 0;
 }
 
