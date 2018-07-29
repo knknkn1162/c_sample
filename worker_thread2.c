@@ -110,10 +110,8 @@ int tpool_destroy(tpool_t* p_tpool) {
   //fprintf(stdout, "graceful shutdown...\n");
   printf("graceful shutdown...\n");
 
-  pthread_mutex_lock(&p_tpool->queue_lock);
-  // shutdown queue quickly
+  // turn on shutdown flag
   p_tpool->queue_shutdown = 1;
-  pthread_mutex_unlock(&p_tpool->queue_lock);
 
   // wakeup WAIT status thread
   pthread_cond_broadcast(&p_tpool->queue_not_empty);
