@@ -105,10 +105,22 @@ int tpool_destroy(tpool_t* p_tpool) {
   }
 
   fprintf(stdout, "graceful shutdown...\n");
+
+  pthread_mutex_lock(&p_tpool->queue_lock);
+  // shutdown queue quickly
+  p_tpool->queue_shutdown = 1;
+  // destroy worker. You cannot use for expression.
+  while(p_tpool->queue_head != NULL) {
+    cur_nodep = p_tpool->queue_head;
+    p_tpool->queue_head = p_tpool->queue_head->next;
+    free(cur_nodep->arg);
+    free(cur_nodep);
+  }
+  pthread_mutex_unlock(&p_tpool->queue_lock);
+
+  // shutdown workers
   for(i = 0; i < NUM_THREADS; i++) {
     void* result;
-    // shutdown queue quickly
-    p_tpool->queue_shutdown = 1;
 
     pthread_cancel(p_tpool->workers[i]);
     pthread_join(p_tpool->workers[i], &result);
@@ -117,14 +129,6 @@ int tpool_destroy(tpool_t* p_tpool) {
     } else {
       fprintf(stdout, "successfully shutdown: %d\n", i);
     }
-  }
-
-  // destroy worker. You cannot use for expression.
-  while(p_tpool->queue_head != NULL) {
-    cur_nodep = p_tpool->queue_head;
-    p_tpool->queue_head = p_tpool->queue_head->next;
-    free(cur_nodep->arg);
-    free(cur_nodep);
   }
   return 0;
 }
