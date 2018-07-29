@@ -51,12 +51,16 @@ int main(void) {
     fgets( buf, sizeof( buf ), stdin );
 
     if( strlen( buf ) <= 1 ) {
-        continue;
+      continue;
     }
     if( memcmp( buf, "quit", 4 ) == 0 ) {
         break;
     }
-    m = atoi(buf);
+    m = strtol(buf, NULL, 10);
+    if(m == 0) {
+      fprintf(stdout, "cannot parse!!\n");
+      continue;
+    }
     fprintf(stdout, "input :%d\n", m);
     add_work(tpool, sample_work, (void*)&m);
   }
@@ -115,7 +119,7 @@ void* tpool_thread(void* arg) {
     if(p_tpool->cur_queue_size == 0) {
       p_tpool->queue_head = NULL;
     } else {
-      fprintf(stdout, "cur_queue_size > 0");
+      fprintf(stdout, "cur_queue_size > 0\n");
       p_tpool->queue_head = my_workp->next;
     }
 
