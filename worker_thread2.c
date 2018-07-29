@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 
 #define NUM_THREADS 5
 #define MAX_QUEUE_SIZE 100
@@ -28,6 +29,8 @@ typedef struct tpool {
 } tpool_t;
 
 int tpool_init(tpool_t**);
+void invoke_signal(tpool_t*);
+void * signal_handler(void* arg);
 int tpool_destroy(tpool_t*);
 void* tpool_thread(void* arg);
 void* add_work(tpool_t* p_tpool, p_routine_t routine, void* arg);
@@ -49,6 +52,7 @@ int main(void) {
     perror("tpool_init error");
     exit(1);
   }
+  invoke_signal(tpool);
 
   while(1) {
     // generate input resources
@@ -77,6 +81,83 @@ int main(void) {
   tpool_destroy(tpool);
   return 0;
 }
+
+void invoke_signal(tpool_t* p_tpool) {
+  pthread_t pt;
+  sigset_t ss;
+  sigemptyset( &ss );
+  sigaddset( &ss, SIGHUP );
+  sigaddset( &ss, SIGINT );
+  sigprocmask( SIG_BLOCK, &ss, NULL );
+  pthread_create(&pt, NULL, &signal_handler, (void*)p_tpool);
+  pthread_detach(pt);
+}
+
+
+/*
+void* signal_handler(void* arg) {
+    sigset_t  ss ;
+    int       sig;
+    tpool_t* p_tpool = (tpool_t*)arg;
+
+    sigemptyset( &ss );
+    sigaddset( &ss, SIGHUP);
+    sigaddset( &ss, SIGINT);
+
+    printf("signal_handler start\n");
+    while(1) {
+      sigwait(&ss, &sig);
+      printf("catch\n");
+      switch(sig) {
+        case SIGHUP:
+        case SIGINT:
+          tpool_destroy(p_tpool);
+          break;
+        default:
+          break;
+      }
+    }
+    printf( "sigwait END!!\n" );
+    return NULL;
+}
+*/
+
+void * signal_handler( void * arg ) {
+    sigset_t  ss ;
+    int       sig;
+
+    tpool_t* p_tpool = (tpool_t*)arg;
+
+    /* SIGHUP,SIGINTを待つ */
+    sigemptyset( &ss );
+    sigaddset( &ss, SIGHUP );
+    sigaddset( &ss, SIGINT );
+
+    while( 1 ) {
+        if( sigwait( &ss, &sig )) {
+
+            printf( "not SIGHUP,SIGINT signal!!\n" );
+            continue;
+        }
+        switch( sig ) {
+        case SIGHUP:
+            printf( "signal_handler 'SIGHUP' Path!! [%d]\n", sig );
+            tpool_destroy(p_tpool);
+            break;
+
+        case SIGINT:
+            printf( "signal_handler 'SIGINT' Path!! [%d]\n", sig );
+            tpool_destroy(p_tpool);
+            break;
+
+        default:
+            break;
+        }
+    }
+    printf( "sigwait END!!\n" );
+    return NULL;
+}
+
 
 int tpool_init(tpool_t** pp_tpool) {
   int i;
