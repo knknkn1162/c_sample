@@ -137,6 +137,7 @@ int tpool_destroy(tpool_t* p_tpool) {
   }
   // destroy thread pool resources
   free(p_tpool);
+  fprintf(stdout, "destroy thread pool resources!!\n");
   return 0;
 }
 
