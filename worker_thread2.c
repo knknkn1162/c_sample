@@ -31,6 +31,7 @@ int tpool_init(tpool_t**);
 int tpool_destroy(tpool_t*);
 void* tpool_thread(void* arg);
 void* add_work(tpool_t* p_tpool, p_routine_t routine, void* arg);
+void cleanup_handler(void* arg);
 
 void* sample_work(void* arg) {
   int m = *(int*)arg;
@@ -61,6 +62,7 @@ int main(void) {
     if( memcmp( buf, "quit", 4 ) == 0 ) {
         break;
     }
+    // TODO: graceful shutdown when Ctrl-C
     *m = strtol(buf, NULL, 10);
     if(m == 0) {
       fprintf(stdout, "cannot parse!!\n");
@@ -139,6 +141,7 @@ void* tpool_thread(void* arg) {
     }
   }
   while(1) {
+    pthread_cleanup_push(cleanup_handler, p_tpool);
     pthread_mutex_lock(&p_tpool->queue_lock);
 
     while(p_tpool->cur_queue_size == 0) {
@@ -162,6 +165,7 @@ void* tpool_thread(void* arg) {
       pthread_cond_signal(&p_tpool->queue_not_full);
     }
     pthread_mutex_unlock(&p_tpool->queue_lock);
+    pthread_cleanup_pop(0);
 
 
     fprintf(stdout, "* start routine: %d\n", idx);
@@ -172,6 +176,11 @@ void* tpool_thread(void* arg) {
     fprintf(stdout, "* end routine: %d\n", idx);
   }
   return NULL;
+}
+
+void cleanup_handler(void* arg) {
+  tpool_t* p_tpool = (tpool_t*)arg;
+  pthread_mutex_unlock(&p_tpool->queue_lock);
 }
 
 void* add_work(tpool_t* p_tpool, p_routine_t routine, void* arg) {
