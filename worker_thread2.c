@@ -30,6 +30,7 @@ typedef struct tpool {
 
 int tpool_init(tpool_t**);
 void invoke_signal(tpool_t*);
+void set_signal_mask(void);
 void * signal_handler(void* arg);
 int tpool_destroy(tpool_t*);
 void* tpool_thread(void* arg);
@@ -52,8 +53,8 @@ int main(void) {
     perror("tpool_init error");
     exit(1);
   }
-  invoke_signal(tpool);
 
+  invoke_signal(tpool);
   while(1) {
     // generate input resources
     m = malloc(sizeof(int));
@@ -77,24 +78,29 @@ int main(void) {
     printf("input :%d\n", *m);
     add_work(tpool, sample_work, (void*)m);
   }
-
   tpool_destroy(tpool);
   return 0;
 }
 
-void invoke_signal(tpool_t* p_tpool) {
-  pthread_t pt;
+void set_signal_mask(void) {
   sigset_t ss;
   sigemptyset( &ss );
   sigaddset( &ss, SIGHUP );
   sigaddset( &ss, SIGINT );
   sigprocmask( SIG_BLOCK, &ss, NULL );
+}
+
+void invoke_signal(tpool_t* p_tpool) {
+  pthread_t pt;
+
+  set_signal_mask();
+
   pthread_create(&pt, NULL, &signal_handler, (void*)p_tpool);
   pthread_detach(pt);
 }
 
 
-/*
+
 void* signal_handler(void* arg) {
     sigset_t  ss ;
     int       sig;
@@ -106,12 +112,15 @@ void* signal_handler(void* arg) {
 
     printf("signal_handler start\n");
     while(1) {
-      sigwait(&ss, &sig);
-      printf("catch\n");
+      if( sigwait( &ss, &sig )) {
+          printf( "not SIGHUP,SIGINT signal!!\n" );
+          continue;
+      }
       switch(sig) {
         case SIGHUP:
         case SIGINT:
-          tpool_destroy(p_tpool);
+          printf("push\n");
+          //tpool_destroy(p_tpool);
           break;
         default:
           break;
@@ -120,44 +129,6 @@ void* signal_handler(void* arg) {
     printf( "sigwait END!!\n" );
     return NULL;
 }
-*/
-
-void * signal_handler( void * arg ) {
-    sigset_t  ss ;
-    int       sig;
-
-    tpool_t* p_tpool = (tpool_t*)arg;
-
-    /* SIGHUP,SIGINTを待つ */
-    sigemptyset( &ss );
-    sigaddset( &ss, SIGHUP );
-    sigaddset( &ss, SIGINT );
-
-    while( 1 ) {
-        if( sigwait( &ss, &sig )) {
-
-            printf( "not SIGHUP,SIGINT signal!!\n" );
-            continue;
-        }
-        switch( sig ) {
-        case SIGHUP:
-            printf( "signal_handler 'SIGHUP' Path!! [%d]\n", sig );
-            tpool_destroy(p_tpool);
-            break;
-
-        case SIGINT:
-            printf( "signal_handler 'SIGINT' Path!! [%d]\n", sig );
-            tpool_destroy(p_tpool);
-            break;
-
-        default:
-            break;
-        }
-    }
-    printf( "sigwait END!!\n" );
-    return NULL;
-}
-
 
 int tpool_init(tpool_t** pp_tpool) {
   int i;
@@ -229,6 +200,8 @@ void* tpool_thread(void* arg) {
   int idx;
   tpool_t* p_tpool = (tpool_t*)arg;
   tpool_work_t* my_workp;
+  // don't forget it!
+  set_signal_mask();
 
   for(idx = 0; idx < NUM_THREADS; idx++) {
     if(p_tpool->workers[idx] == pthread_self()) {
