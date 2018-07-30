@@ -69,7 +69,7 @@ int main(void) {
     }
     // TODO: graceful shutdown when Ctrl-C
     *m = strtol(buf, NULL, 10);
-    if(m == 0) {
+    if(*m == 0) {
       //fprintf(stdout, "cannot parse!!\n");
       printf("cannot parse!!\n");
       continue;
