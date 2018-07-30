@@ -7,6 +7,7 @@
 
 void * signal_handler( void * arg );
 void * worker_thread ( void * arg );
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 void invoke_signal(void) {
     sigset_t        ss ;
@@ -24,13 +25,15 @@ void invoke_signal(void) {
 }
 
 int main( int argc, char ** argv ) {
+    pthread_t pt[3];
     invoke_signal();
 
     /* 実処理スレッド生成 */
-    //pthread_create( &pt, NULL, &worker_thread, &max_cnt );
+    pthread_create( &pt[0], NULL, &worker_thread, (void*)1);
+    pthread_create( &pt[1], NULL, &worker_thread, (void*)2);
+    pthread_create( &pt[2], NULL, &worker_thread, (void*)3);
     //pthread_detach( pt );
 
-    /* 実処理 */
     while(1) {
       char buf[256];
       fgets( buf, sizeof( buf ), stdin );
@@ -41,6 +44,19 @@ int main( int argc, char ** argv ) {
       printf("result: %s\n", buf);
     }
     return 0;
+}
+
+void* worker_thread(void* arg) {
+  int time = (long)arg;
+  while(1) {
+
+    pthread_mutex_lock(&lock);
+    sleep(time);
+    printf("worker_thread %d \n", time);
+    pthread_mutex_unlock(&lock);
+    sleep(1);
+  }
+  return NULL;
 }
 
 void * signal_handler( void * arg ) {
@@ -74,17 +90,5 @@ void * signal_handler( void * arg ) {
         }
     }
     printf( "sigwait END!!\n" );
-    return NULL;
-}
-
-void * worker_thread( void * arg ) {
-    int       count;
-    int       max_cnt = *( int * )arg;
-
-    /* 実処理 */
-    for( count = 0; count < max_cnt; count ++ ) {
-        sleep( 1 ) ;
-        printf( "timer - [%d]\n", count );
-    }
     return NULL;
 }
