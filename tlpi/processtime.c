@@ -26,8 +26,8 @@ int main(void) {
       perror("times");
     }
 
-    if(i == 1 || i == 100000-1) {
-      printf("%.5f %.5f\n", (double)t.tms_utime/clockTicks, (double)t.tms_stime/clockTicks);
+    if(i % 1000 == 999) {
+      printf("[%d] %.5f %.5f\n", i, (double)t.tms_utime/clockTicks, (double)t.tms_stime/clockTicks);
     }
   }
   clockTime = clock() - clockTime;
