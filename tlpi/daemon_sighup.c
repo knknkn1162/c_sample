@@ -16,6 +16,7 @@
 
 int becomeDaemon(int flags);
 static void logMessage(const char *format, ...);
+static void logOpen(const char *logFileName);
 static void logClose(void);
 static void sighupHandler(int sig);
 static void readConfigFile(const char *configFileName);
@@ -27,8 +28,61 @@ static const char *CONFIG_FILE = "/tmp/ds.conf";
 static volatile sig_atomic_t hupReceived = 0;
 
 int main(void) {
+  const int SLEEP_TIME = 15;
+  int count = 0;
+  int unslept;
+  struct sigaction sa;
+
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+  sa.sa_handler = sighupHandler;
+
+  if(sigaction(SIGHUP, &sa, NULL) == -1) {
+    perror("sighup sigaction");
+    exit(1);
+  }
+
+  logOpen(LOG_FILE);
+  readConfigFile(CONFIG_FILE);
+
+  unslept= SLEEP_TIME;
+
+  while(1) {
+    unslept = sleep(unslept);
+    if(hupReceived) {
+      logClose();
+      logOpen(LOG_FILE);
+      readConfigFile(CONFIG_FILE);
+      hupReceived = 0;
+    }
+
+    if(unslept == 0) {
+      count++;
+      logMessage("Main: %d\n", count);
+      unslept = SLEEP_TIME;
+    }
+  }
   return 0;
 }
+
+static void logOpen(const char *logFilename)
+{
+    mode_t m;
+
+    m = umask(077);
+    logfp = fopen(logFilename, "a");
+    umask(m);
+
+    /* If opening the log fails we can't display a message... */
+
+    if (logfp == NULL)
+        exit(EXIT_FAILURE);
+
+    setbuf(logfp, NULL);                    /* Disable stdio buffering */
+
+    logMessage("Opened log file");
+}
+
 static void readConfigFile(const char *configFilename) {
     FILE *configfp;
 #define SBUF_SIZE 100
