@@ -14,6 +14,7 @@ int main(void) {
   int msqid;
   key_t key;
   key = ftok(KEY_FILE, 1);
+  printf("0x%08x\n", key);
   
   while((msqid = msgget(key, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR | S_IWGRP)) == -1) {
     if(errno == EEXIST) {
