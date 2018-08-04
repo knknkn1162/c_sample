@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <sys/types.h>
 #include <errno.h>
 
 #define MAX_MTEXT 1024
@@ -23,6 +24,7 @@ int main(int argc, char* argv[]) {
   int msgLen;
   int type = -30;
   char* str = "abcd";
+  struct msqid_ds ds;
 
   key = msgget(IPC_PRIVATE, S_IRUSR | S_IWUSR);
 
@@ -48,6 +50,10 @@ int main(int argc, char* argv[]) {
   }
   printf("+ before\n");
   system("ipcs");
+
+  msgctl(key, MSG_STAT, &ds);
+  printf("%x, %ld\n", ds.msg_perm.__key, (long)ds.msg_qnum);
+  // int msgctl(int msqid, int cmd, struct msqid_ds *buf);
   msgctl(key, IPC_RMID, NULL);
   printf("+ after\n");
   system("ipcs");
