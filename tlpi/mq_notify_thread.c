@@ -12,7 +12,16 @@ static void threadFunc(union sigval sv);
 
 int main(int argc, char *argv[]) {
   mqd_t mqd;
+  mqd_t mqd2;
   struct sigevent sev;
+
+  /* initialize */
+  mqd = mq_open(argv[1], O_CREAT, S_IRUSR | S_IWUSR, NULL);
+  memset(&sev, 0, sizeof(sev));
+  if(mqd == (mqd_t)-1) {
+    perror("open");
+    exit(1);
+  }
   mqd = mq_open(argv[1], O_RDONLY | O_NONBLOCK);
   if(mqd == (mqd_t)-1) {
     perror("mq_open");
@@ -40,14 +49,19 @@ int main(int argc, char *argv[]) {
   }
 
   {
-    mqd_t mqd;
-    mqd = mq_open(argv[1], O_WRONLY);
-    // send
-    if(mq_send(mqd, argv[2], strlen(argv[2]), 0) == -1) {
-      perror("mq_send");
-      exit(1);
+
+    int i;
+    mqd2 = mq_open(argv[1], O_WRONLY);
+    // send multiple times
+    for(i = 0; i < 5; i++) {
+      // send
+      sleep(1);
+      if(mq_send(mqd2, argv[2], strlen(argv[2]), 0) == -1) {
+        perror("mq_send");
+        exit(1);
+      }
+      printf("send word [%d]\n", i);
     }
-    printf("send word\n");
   }
   pause();
 }
@@ -64,7 +78,7 @@ static void threadFunc(union sigval sv) {
   struct mq_attr attr;
   struct sigevent sev;
 
-  printf("threadfunc start\n");
+  write(STDOUT_FILENO, "threadfunc start\n", 17);
   mqdp = sv.sival_ptr;
   if(mq_getattr(*mqdp, &attr) == -1) {
     perror("mq_getattr");
@@ -79,7 +93,7 @@ static void threadFunc(union sigval sv) {
   sev.sigev_notify = SIGEV_THREAD;
   sev.sigev_notify_function = threadFunc;
   sev.sigev_notify_attributes = NULL;
-  sev.sigev_value.sival_ptr = &mqdp;
+  sev.sigev_value.sival_ptr = mqdp;
   if(mq_notify(*mqdp, &sev) == -1) {
     perror("mq_notify");
   }
