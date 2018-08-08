@@ -11,14 +11,21 @@
 #define PORT_NUM 50002
 
 
+// docker doesn't support ipv6 for macOS. Try it on vagrant.
 int main(int argc, char *argv[]) {
-  struct sockaddr_in6 claddr;
+  struct sockaddr_in6 svaddr, claddr;
   int j, sfd;
   char buf[BUF_SIZE];
   ssize_t numBytes;
 
+
+  memset(&svaddr, 0, sizeof(struct sockaddr_in6));
+  svaddr.sin6_family = AF_INET6;
+  svaddr.sin6_addr = in6addr_any;
+  // host to network short
+  svaddr.sin6_port = htons(PORT_NUM);
+
   if(fork() == 0) {
-    struct sockaddr_in6 svaddr;
     //client
     sleep(1);
     sfd = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -27,15 +34,11 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
 
-    memset(&svaddr, 0, sizeof(struct sockaddr_in6));
-    svaddr.sin6_family = AF_INET6;
     // int inet_pton(int af, const char *src, void *dst);
     if(inet_pton(AF_INET6, "::1", &svaddr.sin6_addr) <= 0) {
       perror("inet_pton failed");
       exit(1);
     }
-    // host to network short
-    svaddr.sin6_port = htons(PORT_NUM);
 
     for(j = 1; j < argc; j++) {
       if(sendto(sfd, argv[j], strlen(argv[j]), 0, (struct sockaddr*)&svaddr, sizeof(struct sockaddr_in6)) != strlen(argv[j])) {
@@ -55,17 +58,11 @@ int main(int argc, char *argv[]) {
     _exit(EXIT_SUCCESS);
   } else {
     char claddrStr[INET6_ADDRSTRLEN];
-    struct sockaddr_in6 svaddr;
 
     sfd = socket(AF_INET6, SOCK_DGRAM, 0);
     if(sfd == -1) {
       perror("socket");
     }
-    memset(&svaddr, 0, sizeof(struct sockaddr_in6));
-    svaddr.sin6_family = AF_INET6;
-    svaddr.sin6_addr = in6addr_any;
-    // host to network short
-    svaddr.sin6_port = htons(PORT_NUM);
 
     if(bind(sfd, (struct sockaddr*)&svaddr, sizeof(struct sockaddr_in6)) == -1) {
       perror("bind");
