@@ -11,6 +11,7 @@ struct request {
 
 struct response {
   int mtype;
+  size_t size;
   char buf[BUF_SIZE];
 };
 
