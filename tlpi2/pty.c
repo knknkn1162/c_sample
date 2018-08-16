@@ -1,4 +1,4 @@
-git#define _XOPEN_SOURCE 600
+#define _XOPEN_SOURCE 600
 #include <stdlib.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
   pid_t childPid;
   struct winsize ws;
   char slaveName[MAX_SNAME];
-  int masterFd, slaveFd;
+  int masterFd, scriptFd;
   char *shell;
 
   if(tcgetattr(STDIN_FILENO, &ttyOrig) == -1) {
@@ -52,9 +52,9 @@ int main(int argc, char *argv[]) {
     char buf[BUF_SIZE];
     int numRead;
     // parent
-    slaveFd = open("typescript", O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    scriptFd = open("typescript", O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
-    if(slaveFd == -1) {
+    if(scriptFd == -1) {
       perror("open typescript");
       exit(1);
     }
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
           perror("write");
           exit(1);
         }
-        if(write(slaveFd, buf, numRead) != numRead) {
+        if(write(scriptFd, buf, numRead) != numRead) {
           perror("write");
           exit(1);
         }
@@ -144,7 +144,7 @@ int ttySetRaw(int fd, struct termios *prevTermios) {
 
 // create child process that is connected to the parent by a pseudoterminal pair;
 pid_t ptyFork(int *masterFd, char *slaveName, size_t snLen, const struct termios *slaveTermios, const struct winsize *slaveWS) {
-  int mfd, slaveFd, savedErrno;
+  int mfd, scriptFd, savedErrno;
   pid_t childPid;
   char slname[MAX_SNAME];
 
@@ -186,46 +186,46 @@ pid_t ptyFork(int *masterFd, char *slaveName, size_t snLen, const struct termios
   // no longer need master file descriptor
   close(mfd);
 
-  slaveFd = open(slname, O_RDWR);
-  if(slaveFd == -1) {
+  scriptFd = open(slname, O_RDWR);
+  if(scriptFd == -1) {
     perror("slave");
   }
 
-  if(ioctl(slaveFd, TIOCSCTTY, 0) == -1) {
+  if(ioctl(scriptFd, TIOCSCTTY, 0) == -1) {
     perror("ioctl");
     exit(1);
   }
 
   if(slaveTermios != NULL) {
-    if(tcsetattr(slaveFd, TCSANOW, slaveTermios) == -1) {
+    if(tcsetattr(scriptFd, TCSANOW, slaveTermios) == -1) {
       perror("ptyFork");
       exit(1);
     }
   }
 
   if(slaveWS != NULL) {
-    if(ioctl(slaveFd, TIOCSWINSZ, slaveWS) == -1) {
+    if(ioctl(scriptFd, TIOCSWINSZ, slaveWS) == -1) {
       perror("ptyfork winsz");
       exit(1);
     }
   }
 
   // to run on a conventional terminal
-  if(dup2(slaveFd, STDIN_FILENO) != STDIN_FILENO) {
+  if(dup2(scriptFd, STDIN_FILENO) != STDIN_FILENO) {
     perror("dup2");
     exit(1);
   }
-  if(dup2(slaveFd, STDOUT_FILENO) != STDOUT_FILENO) {
+  if(dup2(scriptFd, STDOUT_FILENO) != STDOUT_FILENO) {
     perror("dup2");
     exit(1);
   }
-  if(dup2(slaveFd, STDERR_FILENO) != STDERR_FILENO) {
+  if(dup2(scriptFd, STDERR_FILENO) != STDERR_FILENO) {
     perror("dup2");
     exit(1);
   }
 
-  if(slaveFd > STDERR_FILENO) {
-    close(slaveFd);
+  if(scriptFd > STDERR_FILENO) {
+    close(scriptFd);
   }
 
   return 0;
