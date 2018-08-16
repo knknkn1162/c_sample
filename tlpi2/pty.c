@@ -39,6 +39,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   } else if (childPid == 0) {
     // child
+    printf("[child] pid=%ld, PPID=%ld, PGID=%ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
     shell = getenv("SHELL");
     if(shell == NULL || *shell == '\0') {
       shell = "bin/sh";
@@ -48,6 +49,7 @@ int main(int argc, char *argv[]) {
     // never reaches!!
     perror("execlp");
   } else {
+    printf("[parent] pid=%ld, PPID=%ld, PGID=%ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
     fd_set inFds;
     char buf[BUF_SIZE];
     int numRead;
@@ -148,7 +150,7 @@ pid_t ptyFork(int *masterFd, char *slaveName, size_t snLen, const struct termios
   pid_t childPid;
   char slname[MAX_SNAME];
 
-  printf("pid=%ld, PPID=%ld, PGID=%ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
+  printf("[before ptyFork] pid=%ld, PPID=%ld, PGID=%ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
 
   mfd = ptyMasterOpen(slname, MAX_SNAME);
   if(mfd == -1) {
@@ -187,7 +189,6 @@ pid_t ptyFork(int *masterFd, char *slaveName, size_t snLen, const struct termios
 
   // no longer need master file descriptor
   close(mfd);
-  printf("pid=%ld, PPID=%ld, PGID=%ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
   slaveFd = open(slname, O_RDWR);
   if(slaveFd == -1) {
     perror("slave");
