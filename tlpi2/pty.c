@@ -144,9 +144,11 @@ int ttySetRaw(int fd, struct termios *prevTermios) {
 
 // create child process that is connected to the parent by a pseudoterminal pair;
 pid_t ptyFork(int *masterFd, char *slaveName, size_t snLen, const struct termios *slaveTermios, const struct winsize *slaveWS) {
-  int mfd, scriptFd, savedErrno;
+  int mfd, slaveFd, savedErrno;
   pid_t childPid;
   char slname[MAX_SNAME];
+
+  printf("pid=%ld, PPID=%ld, PGID=%ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
 
   mfd = ptyMasterOpen(slname, MAX_SNAME);
   if(mfd == -1) {
@@ -185,47 +187,48 @@ pid_t ptyFork(int *masterFd, char *slaveName, size_t snLen, const struct termios
 
   // no longer need master file descriptor
   close(mfd);
-
-  scriptFd = open(slname, O_RDWR);
-  if(scriptFd == -1) {
+  printf("pid=%ld, PPID=%ld, PGID=%ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
+  slaveFd = open(slname, O_RDWR);
+  if(slaveFd == -1) {
     perror("slave");
   }
 
-  if(ioctl(scriptFd, TIOCSCTTY, 0) == -1) {
+  //  指定された端末を呼び出し元のプロセスの制御端末にする。
+  if(ioctl(slaveFd, TIOCSCTTY, 0) == -1) {
     perror("ioctl");
     exit(1);
   }
 
   if(slaveTermios != NULL) {
-    if(tcsetattr(scriptFd, TCSANOW, slaveTermios) == -1) {
+    if(tcsetattr(slaveFd, TCSANOW, slaveTermios) == -1) {
       perror("ptyFork");
       exit(1);
     }
   }
 
   if(slaveWS != NULL) {
-    if(ioctl(scriptFd, TIOCSWINSZ, slaveWS) == -1) {
+    if(ioctl(slaveFd, TIOCSWINSZ, slaveWS) == -1) {
       perror("ptyfork winsz");
       exit(1);
     }
   }
 
   // to run on a conventional terminal
-  if(dup2(scriptFd, STDIN_FILENO) != STDIN_FILENO) {
+  if(dup2(slaveFd, STDIN_FILENO) != STDIN_FILENO) {
     perror("dup2");
     exit(1);
   }
-  if(dup2(scriptFd, STDOUT_FILENO) != STDOUT_FILENO) {
+  if(dup2(slaveFd, STDOUT_FILENO) != STDOUT_FILENO) {
     perror("dup2");
     exit(1);
   }
-  if(dup2(scriptFd, STDERR_FILENO) != STDERR_FILENO) {
+  if(dup2(slaveFd, STDERR_FILENO) != STDERR_FILENO) {
     perror("dup2");
     exit(1);
   }
 
-  if(scriptFd > STDERR_FILENO) {
-    close(scriptFd);
+  if(slaveFd > STDERR_FILENO) {
+    close(slaveFd);
   }
 
   return 0;
