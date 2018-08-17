@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <termios.h>
 
 
 #define BD_NO_CHDIR 01
@@ -37,11 +38,14 @@ int becomeDaemon(int flags) {
       // guaranteed not to be a process group leader
       break;
     default:
+      printf("[parent] PID: %ld, PPID: %ld, PGID: %ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
       _exit(EXIT_SUCCESS);
   }
-  printf("after first fork:\n");
-  printf("parent: PID: %ld, PPID: %ld, PGID: %ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
 
+  printf("after first fork:\n");
+  printf("[orphaned] PID: %ld, PPID: %ld, PGID: %ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
+
+  // if the calling process is a process group leader, setsid fails with the err EPERM.
   if(setsid() == -1) {
     perror("setsid");
     exit(1);
@@ -49,6 +53,7 @@ int becomeDaemon(int flags) {
 
   printf("after setsid\n");
   printf("parent: PID: %ld, PPID: %ld, PGID: %ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
+  printf("tcgetsid %d\n", tcgetsid(STDIN_FILENO));
 
   // the child is not the session leader and the process can reacquire a controlling terminal.(Because only the session leader can open the controlling terminal.)
   switch(fork()) {

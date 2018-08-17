@@ -11,6 +11,7 @@ int main(int argc, char *argv[]) {
   struct winsize ws;
   struct sigaction sa;
 
+  printf("%s %s\n", ttyname(STDIN_FILENO), ttyname(STDOUT_FILENO));
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
   sa.sa_handler = handler;
