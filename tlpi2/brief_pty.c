@@ -51,8 +51,9 @@ int main(void) {
     close(masterFd);
 
     // 2.b) Open the psuedoterminal slave device that corresponds to the master device. Since the child process is a session leader, and it doesn't have a controlling terminal, the psuedo terminal slave becomes the controlling terminal for the child process.
-    slaveFd = open(ptsName, O_RDWR);
     // Make the given terminal the controlling terminal of the calling process.  The calling process must be a session  leader and not have a controlling terminal already
+    slaveFd = open(ptsName, O_RDWR);
+    // This code allows our ptyFork() function to work on BSD platforms, where a controlling terminal can be acquired only as a consequence of an explicit TIOCSCTTY operation
     ioctl(slaveFd, TIOCSCTTY, 0);
 
     // reflect termios settings on the slaveFd
