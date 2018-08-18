@@ -1,4 +1,4 @@
-#define _XOPEN_SOURCE 600
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -10,6 +10,7 @@
 #include <sys/select.h>
 
 #define BUF_SIZE 256
+#define MAX_SNAME 100
 
 int ttySetRaw(int fd, struct termios *prevTermios);
 static struct termios ttyOrig;
@@ -18,7 +19,7 @@ static void ttyReset(void);
 int main(void) {
   int masterFd, slaveFd;
   pid_t childPid;
-  char *ptsName;
+  char ptsName[MAX_SNAME];
   struct winsize ws;
   char *shell;
 
@@ -31,7 +32,7 @@ int main(void) {
   // allow the calling process to perform whatever initialization is required for the pseudoterminal slave
   unlockpt(masterFd);
   // retrieve pts name, typically "/dev/pts/*"
-  ptsName = ptsname(masterFd);
+  ptsname_r(masterFd, ptsName, MAX_SNAME);
 
 
   // save termios settings
