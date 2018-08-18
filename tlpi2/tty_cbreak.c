@@ -19,7 +19,8 @@ int main(int argc, char *argv[]) {
   char ch;
   struct sigaction sa, prev;
   ssize_t n;
-
+ 
+  // int ttySetCbreak(int fd, struct termios *prevTermios)
   if(ttySetCbreak(STDIN_FILENO, &userTermios) == -1) {
     perror("ttySetCbreak");
   }
@@ -32,6 +33,7 @@ int main(int argc, char *argv[]) {
     perror("sigaction");
     exit(1);
   }
+
   if(prev.sa_handler != SIG_IGN) {
     if(sigaction(SIGQUIT, &sa, NULL) == -1) {
       perror("sigaction");
@@ -87,6 +89,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  // restore termios
+  // int ttySetCbreak(int fd, struct termios *prevTermios)
   if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &userTermios) == -1) {
     perror("tcsetattr");
     exit(1);
@@ -105,6 +109,7 @@ int ttySetCbreak(int fd, struct termios *prevTermios) {
     *prevTermios = t;
   }
 
+  // set noncannonical mode and disable echo.
   t.c_lflag &= ~(ICANON | ECHO);
   // When  any  of the characters INTR, QUIT, SUSP, or DSUSP are received, generate the corresponding signal
   t.c_lflag |= ISIG;
