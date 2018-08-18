@@ -32,6 +32,7 @@ int system(const char *command) {
   saIgnore.sa_handler = SIG_IGN;
   saIgnore.sa_flags = 0;
   sigemptyset(&saIgnore.sa_mask);
+  // SIGINT and SIGQUIT should be ignored in the calling process while the command is being executed
   sigaction(SIGINT, &saIgnore, &saOrigInt);
   sigaction(SIGQUIT, &saIgnore, &saOrigQuit);
 
@@ -44,15 +45,14 @@ int system(const char *command) {
       saDefault.sa_flags = 0;
       sigemptyset(&saDefault.sa_mask);
 
+      // In the child, SIGINT and SIGQUIT should be treated as they would be if the calling process did a fork and exec.
       // signals with dispositions set to default or ignore are unchanged
       if(saOrigInt.sa_handler != SIG_IGN) {
         sigaction(SIGINT, &saDefault, NULL);
       }
-
       if(saOrigQuit.sa_handler != SIG_IGN) {
         sigaction(SIGQUIT, &saDefault, NULL);
       }
-
       sigprocmask(SIG_SETMASK, &origMask, NULL);
 
       execl("/bin/sh", "sh", "-c", command, (char*)NULL);
