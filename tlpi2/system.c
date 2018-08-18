@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {
-  if(system("cat Dockerfile") == -1) {
+  if(system(argv[1]) == -1) {
     perror("system");
     exit(1);
   }
