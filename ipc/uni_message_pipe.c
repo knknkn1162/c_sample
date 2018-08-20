@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
     if(close(pfd[1]) == -1) {
       perror("[child] close write");
     }
-    printf("child exit\n");
+    printf("[child] exit\n");
     _exit(EXIT_SUCCESS);
   } else {
     //parent
@@ -52,6 +52,7 @@ int main(int argc, char *argv[]) {
     int numRead;
     char buf[BUF_SIZE];
     struct request req;
+    printf("[parent] PID=%ld, PPID=%ld, PGID=%ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
     if(close(pfd[1]) == -1) {
       perror("[parent] close");
       exit(1);
@@ -75,6 +76,7 @@ int main(int argc, char *argv[]) {
         }
         
         // send response message
+        fprintf(stdout, "requested by PID: %d\n", req.clientId);
         while(1) {
           if((numRead = read(fd, buf, BUF_SIZE)) < 0) {
             perror("read");
