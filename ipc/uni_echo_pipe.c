@@ -26,11 +26,9 @@ int main(int argc, char *argv[]) {
     if(close(pfd[0]) == -1) {
       perror("[child] close read fd");
     }
-    while(1) {
-      if(write(pfd[1], argv[1], strlen(argv[1])) != strlen(argv[1])) {
-        perror("[child] write");
-        exit(1);
-      }
+    if(write(pfd[1], argv[1], strlen(argv[1])) != strlen(argv[1])) {
+      perror("[child] write");
+      exit(1);
     }
 
     if(close(pfd[1]) == -1) {
@@ -51,6 +49,7 @@ int main(int argc, char *argv[]) {
       if((numRead = read(pfd[0], buf, BUF_SIZE))== -1) {
         perror("read");
       } else if (numRead == 0) {
+        printf("read eof\n");
         break;
       } else {
         if(write(STDOUT_FILENO, buf, numRead) != numRead) {
