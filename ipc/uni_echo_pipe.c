@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 #define BUF_SIZE 256
 
@@ -25,9 +26,11 @@ int main(int argc, char *argv[]) {
     if(close(pfd[0]) == -1) {
       perror("[child] close read fd");
     }
-    if(write(pfd[1], argv[1], strlen(argv[1])) != strlen(argv[1])) {
-      perror("[child] write");
-      exit(1);
+    while(1) {
+      if(write(pfd[1], argv[1], strlen(argv[1])) != strlen(argv[1])) {
+        perror("[child] write");
+        exit(1);
+      }
     }
 
     if(close(pfd[1]) == -1) {
