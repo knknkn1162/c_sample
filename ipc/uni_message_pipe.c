@@ -58,6 +58,7 @@ int main(int argc, char *argv[]) {
     int numRead;
     char buf[BUF_SIZE];
     struct request req;
+
     printf("[parent] PID=%ld, PPID=%ld, PGID=%ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
     if(close(pfd[1]) == -1) {
       perror("[parent] close");

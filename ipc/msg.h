@@ -9,8 +9,9 @@ struct request {
 #define RESP_MSG_SIZE 8192
 
 struct response {
+  int len;
   long mtype;
-  char data[RESP_MSG_SIZE];
+  char *data;
 };
 
 #define RESP_FAILURE 1
