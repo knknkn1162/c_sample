@@ -8,7 +8,8 @@
 #include <errno.h>
 #include "msg.h"
 
-#define BUF_SIZE 256
+#define BUF_MSG_SIZE 256
+#define BUF_SIZE (BUF_MSG_SIZE + sizeof(size_t) + sizeof(long))
 
 int main(int argc, char *argv[]) {
 
@@ -38,6 +39,11 @@ int main(int argc, char *argv[]) {
     exit(1);
   } else if (pid == 0) {
     struct request req;
+    size_t len, msg_len;
+    long mtype;
+    char* pointer;
+    char resp[BUF_SIZE];
+    char* buf;
     // child
     if(close(pfd[0]) == -1) {
       perror("[child] close request read fd");
@@ -64,17 +70,23 @@ int main(int argc, char *argv[]) {
 
     // response
     while(1) {
-      struct response res;
-      if((numRead = read(rpfd[0], &res, sizeof(res))) < 0) {
+      if((numRead = read(rpfd[0], &resp, sizeof(resp))) < 0) {
         perror("read");
         exit(1);
       } else if (numRead == 0) {
         printf("[child] EOF\n");
         break;
       } else {
-        printf("[child] read response msg: %p\n", res.data);
-        printf("%c %c %c\n", res.data[0], res.data[1], res.data[2]);
-        if(write(STDOUT_FILENO, res.data, res.len) != res.len) {
+        pointer = resp;
+        memcpy(&len, pointer, sizeof(size_t));
+        pointer += sizeof(size_t);
+        memcpy(&mtype, pointer, sizeof(long));
+        msg_len = len - sizeof(long) - sizeof(size_t);
+        buf = malloc(msg_len);
+        memcpy(buf, pointer, msg_len);
+
+        printf("[child] read response msg: %p\n", buf);
+        if(write(STDOUT_FILENO, buf, msg_len) != msg_len) {
             perror("[child] write");
             exit(1);
         }
@@ -91,7 +103,7 @@ int main(int argc, char *argv[]) {
   } else {
     //parent
     int fd;
-    char buf[BUF_SIZE];
+    char buf[BUF_MSG_SIZE];
     struct request req;
 
     printf("[parent] PID=%ld, PPID=%ld, PGID=%ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
@@ -106,7 +118,10 @@ int main(int argc, char *argv[]) {
     }
 
     while(1) {
-      struct response res;
+      char resp[BUF_SIZE];
+      char* iter;
+      long mtype;
+      size_t len;
       if((numRead = read(pfd[0], &req, sizeof(req))) == -1) {
         perror("read");
       } else if (numRead == 0) {
@@ -137,7 +152,7 @@ int main(int argc, char *argv[]) {
         // send response message
         fprintf(stdout, "[parent] requested by PID: %d\n", req.clientId);
         while(1) {
-          if((numRead = read(fd, buf, BUF_SIZE)) < 0) {
+          if((numRead = read(fd, buf, BUF_MSG_SIZE)) < 0) {
             perror("read");
             exit(1);
           } else if (numRead == 0) {
@@ -148,14 +163,18 @@ int main(int argc, char *argv[]) {
             }
             break;
           } else {
-            memset(&res, 0, sizeof(res));
-            res.data = malloc(numRead);
-            res.mtype = RESP_DATA;
-            res.data = buf;
-            res.len = numRead;
-            printf("[parent] send message, msg: %p\n", res.data);
-            if(write(rpfd[1], &res, sizeof(res)) != sizeof(res)) {
-                perror("[parent] write");
+            // packed into res variable
+            iter = resp;
+            mtype = RESP_DATA;
+            len = sizeof(long) + numRead + sizeof(size_t);
+            memcpy(iter, &len, sizeof(size_t));
+            iter += sizeof(size_t);
+            memcpy(iter, &mtype, sizeof(long));
+            iter += sizeof(long);
+            memcpy(iter, buf, numRead);
+
+            if(write(rpfd[1], &resp, len) != len) {
+                perror("[parent] write\n");
                 exit(1);
             }
           }

@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <unistd.h>
 #define SERVER_KEY 0x1aaaaaa1
 
 struct request {
@@ -9,7 +10,7 @@ struct request {
 #define RESP_MSG_SIZE 8192
 
 struct response {
-  int len;
+  size_t len;
   long mtype;
   char *data;
 };
