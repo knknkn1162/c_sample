@@ -1,13 +1,4 @@
-#include <sys/types.h>
-#include <sys/msg.h>
-#include <sys/stat.h>
-#include <stddef.h>
 #include <limits.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include "msg.h"
-
 #define SERVER_KEY 0x1aaaaaa1
 
 struct requestMsg {
