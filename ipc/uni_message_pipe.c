@@ -5,6 +5,7 @@
 #include <string.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <errno.h>
 #include "msg.h"
 
 #define BUF_SIZE 256
@@ -13,6 +14,11 @@ int main(int argc, char *argv[]) {
 
   int pfd[2];
   pid_t pid;
+
+  if(argc < 2) {
+    fprintf(stderr, "Usage error: ./a.out [pathName]\n");
+    exit(1);
+  }
 
   if(pipe(pfd) == -1) {
     perror("pipe");
@@ -66,13 +72,24 @@ int main(int argc, char *argv[]) {
       } else {
         fd = open(req.pathName, O_RDONLY);
         if (fd == -1) {
-          strncpy(buf, "open error", 10);
-          // send err message
-          if(write(STDOUT_FILENO, buf, 10) != 10) {
-            perror("[parent] write");
+          int eno = errno;
+          if(errno == ENOENT) {
+            strncpy(buf, "open error\n", 10);
+            // send err message
+            if(write(STDOUT_FILENO, buf, 10) != 10) {
+              perror("[parent] write");
+              exit(1);
+            }
+            errno = eno;
+            perror("open");
+            wait(NULL);
+            printf("[parent] exit\n");
+            exit(EXIT_FAILURE);
+          } else {
+            // if other errror occurs, exit immediately
+            perror("open");
             exit(1);
           }
-          exit(1);
         }
         
         // send response message
@@ -104,7 +121,7 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
     wait(NULL);
-    printf("parent exit\n");
+    printf("[parent] exit\n");
     exit(EXIT_SUCCESS);
   }
 
