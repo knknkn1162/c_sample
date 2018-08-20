@@ -37,14 +37,10 @@ int main(int argc, char *argv[]) {
   fflush(stdout);
 
   if(fork() > 0) {
-    wait(NULL);
+    sleep(5);
     exit(EXIT_SUCCESS);
   }
-  //setsid(0, 0);
-  if(setsid() == -1) {
-    perror("setsid");
-    exit(1);
-  }
+
   printf("pid=%ld, PPID=%ld, PGID=%ld, SID=%ld\n", (long)getpid(), (long)getppid(), (long)getpgrp(), (long)getsid(0));
   fflush(stdout);
 

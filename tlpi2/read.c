@@ -6,7 +6,8 @@
 
 #define BUF_SIZE 100
 
-static void handler(int sig) { printf("sigttin\n"); }
+volatile sig_atomic_t sigCatch = 0;
+static void handler(int sig) { sigCatch = 1; }
 
 int main(int argc, char* argv[]) {
   char buf[BUF_SIZE];
@@ -14,16 +15,15 @@ int main(int argc, char* argv[]) {
   struct sigaction sa;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
-  sa.sa_handler = handler;
+  sa.sa_handler = SIG_DFL;
   if(sigaction(SIGTTIN, &sa, NULL) == -1) {
     perror("sigaction");
     exit(1);
   }
 
-  while((numRead = read(STDIN_FILENO, buf, BUF_SIZE)) >= 0) {
-    if(errno == EIO) { perror("xx"); exit(1); }
-    buf[numRead] = '\0';
-    printf("%s\n", buf);
+  while(1) {
+    putchar('.');
   }
+
   return 0;
 }
