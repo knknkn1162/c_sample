@@ -12,7 +12,10 @@
 
 int main(int argc, char *argv[]) {
   
-  int pfd[2], rpfd[2];
+  // for request
+  int pfd[2];
+  // for response
+  int rpfd[2];
   pid_t pid;
 
   if(pipe(pfd) == -1) {
