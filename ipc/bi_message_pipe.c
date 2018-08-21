@@ -35,6 +35,7 @@ int main(int argc, char *argv[]) {
 
 
   //inherit signal dispositions & sigmask after fork()
+  // If the settings was implement by child process only, the parent process might exit first.
   sigemptyset(&sa.sa_mask);
   sa.sa_handler = sigint_handler;
   sa.sa_flags = 0;
