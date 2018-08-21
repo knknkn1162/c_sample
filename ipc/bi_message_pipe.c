@@ -76,6 +76,7 @@ int main(int argc, char *argv[]) {
       if(errno == EINTR) {
         continue;
       }
+      if(req.pathName[0] == '\n') { continue; }
       num = strlen(req.pathName);
       req.pathName[num-1] = '\0'; // replace '\n' with '\0'
 
@@ -101,7 +102,8 @@ int main(int argc, char *argv[]) {
         switch(resp.mtype) {
           case RESP_FAILURE:
             fprintf(stderr, "[child] response error: %s\n", resp.message);
-            exit(1);
+            flag = 0;
+            break;
           case RESP_END:
             printf("[child] END response\n");
             // The descriptor rpfd remains open, so we can't detect EOF.
