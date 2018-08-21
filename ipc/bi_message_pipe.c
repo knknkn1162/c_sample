@@ -208,6 +208,11 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  if(close(pfd[1]) == -1) {
+    perror("[parent] close");
+    exit(1);
+  }
+
   if(close(rpfd[1]) == -1) {
     perror("[parent] close");
     exit(1);
