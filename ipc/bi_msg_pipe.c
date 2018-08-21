@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
       }
 
       // receive response
-      printf("[child] receive response\n");
+      printf("[child(%d)] wait response\n", i-1);
       while(flag) {
         if((numRead = read(rpfd[i-1][0], &resp, RESP_SIZE)) < 0) {
           perror("[child] read");
@@ -124,6 +124,7 @@ int main(int argc, char *argv[]) {
 
   // reactor
   while(1) {
+    // it assumes to take some time..
     memset(&resp, 0, sizeof(resp));
     // receive request
     printf("[parent] receive reuqest\n");
@@ -150,6 +151,7 @@ int main(int argc, char *argv[]) {
 
     printf("[parent] requested by %ld (%d)\n", req.clientId, idx);
     ifd = open(req.pathName, O_RDONLY);
+    sleep(1);
     if(ifd == -1) {
       int savedErrno;
       resp.mtype = RESP_FAILURE;
