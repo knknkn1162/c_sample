@@ -91,10 +91,11 @@ int main(int argc, char *argv[]) {
     char buf[BUF_SIZE];
     struct request req;
     struct response resp;
-    if(close(pfd[1]) == -1) {
-      perror("[parent] close");
-      exit(1);
-    }
+    // In case of not breaking the below reactor, unclose pipe file descriptor for writer.
+    /* if(close(pfd[1]) == -1) { */
+      /* perror("[parent] close"); */
+      /* exit(1); */
+    /* } */
 
     if(close(rpfd[0]) == -1) {
       perror("[parent] close");
@@ -110,7 +111,7 @@ int main(int argc, char *argv[]) {
         perror("[parent] read");
         continue;
       } else if (numRead == 0) {
-        // The write descriptor pfd[1] all closes..
+        // If The descriptor pfd[1] (for writer) all closes..
         printf("[parent] read eof\n");
         break;
       }
@@ -168,5 +169,4 @@ int main(int argc, char *argv[]) {
   wait(NULL);
   printf("[parent] exit\n");
   exit(EXIT_SUCCESS);
-
 }
