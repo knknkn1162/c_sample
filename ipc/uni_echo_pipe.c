@@ -45,19 +45,20 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
 
+    // receive request
     while(1) {
       if((numRead = read(pfd[0], buf, BUF_SIZE))== -1) {
         perror("read");
       } else if (numRead == 0) {
         printf("read eof\n");
         break;
-      } else {
-        if(write(STDOUT_FILENO, buf, numRead) != numRead) {
-          perror("child");
-          exit(1);
-        }
+      }
+      if(write(STDOUT_FILENO, buf, numRead) != numRead) {
+        perror("child");
+        exit(1);
       }
     }
+    // end message
     write(STDOUT_FILENO, "\n", 1);
     if(close(pfd[0]) == -1) {
       perror("[parent] close");
