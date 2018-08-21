@@ -3,16 +3,17 @@
 #define SERVER_KEY 0x1aaaaaa1
 
 struct request {
-  int clientId;
+  long clientId;
   char pathName[PATH_MAX];
 };
+#define REQ_SIZE (sizeof(struct request))
 
-#define RESP_MSG_SIZE 8192
+#define RESP_MSG_SIZE 256
+#define RESP_SIZE (sizeof(struct response))
 
 struct response {
-  size_t len;
   long mtype;
-  char *data;
+  char message[RESP_MSG_SIZE];
 };
 
 #define RESP_FAILURE 1
