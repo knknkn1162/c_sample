@@ -2,9 +2,11 @@
 #include <unistd.h>
 #define SERVER_KEY 0x1aaaaaa1
 
+
+#define REQ_MSG_SIZE PATH_MAX
 struct request {
   long clientId;
-  char pathName[PATH_MAX];
+  char pathName[REQ_MSG_SIZE];
 };
 #define REQ_SIZE (sizeof(struct request))
 

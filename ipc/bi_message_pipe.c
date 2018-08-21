@@ -6,9 +6,13 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
 #include "msg.h"
 
 #define BUF_SIZE 256
+
+volatile sig_atomic_t sigCatch = 0;
+void sigint_handler(int sig) { sigCatch = 1; }
 
 int main(int argc, char *argv[]) {
   
@@ -16,6 +20,7 @@ int main(int argc, char *argv[]) {
   int pfd[2];
   // for response
   int rpfd[2];
+  struct sigaction sa;
   pid_t pid;
 
   if(pipe(pfd) == -1) {
@@ -28,58 +33,86 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+
+  //inherit signal dispositions & sigmask after fork()
+  sigemptyset(&sa.sa_mask);
+  sa.sa_handler = sigint_handler;
+  sa.sa_flags = 0;
+  if(sigaction(SIGINT, &sa, NULL) == -1) {
+    perror("sigaction");
+    exit(1);
+  }
+
   // file descriptors are duplicated on each processes.
   if((pid = fork()) < 0) {
     perror("fork");
     exit(1);
   } else if (pid == 0) {
+    /* child process */
     struct request req;
     struct response resp;
-    int numRead;
-    int flag = 1;
-    // child
+    int num;
+
     if(close(pfd[0]) == -1) {
       perror("[child] close read fd");
       exit(1);
     }
     
-    // remain open
     if(close(rpfd[1]) == -1) {
       perror("[child] close");
       exit(1);
     }
 
     // send request
-    strncpy(req.pathName, argv[1], strlen(argv[1]));
-    req.clientId = getpid();
-
-    printf("[child] send request\n");
-    if(write(pfd[1], &req, REQ_SIZE) != REQ_SIZE) {
-      perror("[child] write");
-      exit(1);
-    }
-
-    // receive response
-    printf("[child] receive response\n");
-    while(flag) {
-      if((numRead = read(rpfd[0], &resp, RESP_SIZE)) < 0) {
-        perror("[child] read");
+    while(1) {
+      if(sigCatch) {
+        printf("[child] catch SIGINT. Abort!\n");
+        break;
+      }
+      int flag = 1;
+      printf("[child] ready..\n");
+      fgets( req.pathName, REQ_MSG_SIZE, stdin);
+      if(errno == EINTR) {
         continue;
       }
-      switch(resp.mtype) {
-        case RESP_FAILURE:
-          fprintf(stderr, "[child] response error: %s\n", resp.message);
-          exit(1);
-        case RESP_END:
-          printf("[child] END response\n");
-          // The descriptor rpfd remains open, so we can't detect EOF. 
-          // We can't break loop withou switching on the flag explicitly.
-          flag = 0;
-          break;
-        case RESP_DATA:
-          printf("> %s\n", resp.message);
-          break;
+      num = strlen(req.pathName);
+      req.pathName[num-1] = '\0'; // replace '\n' with '\0'
+
+      req.clientId = getpid();
+
+      printf("[child] send request\n");
+      if(write(pfd[1], &req, REQ_SIZE) != REQ_SIZE) {
+        perror("[child] write");
+        exit(1);
       }
+      printf("[child] %s\n", req.pathName);
+
+      // receive response
+      printf("[child] receive response\n");
+      while(flag) {
+        if((num = read(rpfd[0], &resp, RESP_SIZE)) < 0) {
+          perror("[child] read");
+          continue;
+        } else if(num == 0) {
+          printf("[child] EOF\n");
+          break;
+        }
+        switch(resp.mtype) {
+          case RESP_FAILURE:
+            fprintf(stderr, "[child] response error: %s\n", resp.message);
+            exit(1);
+          case RESP_END:
+            printf("[child] END response\n");
+            // The descriptor rpfd remains open, so we can't detect EOF.
+            // We can't break loop withou switching on the flag explicitly.
+            flag = 0;
+            break;
+          case RESP_DATA:
+            printf("[child] > %s\n", resp.message);
+            break;
+        }
+      }
+      printf("[child] end reactor\n");
     }
 
     if(close(pfd[1]) == -1) {
@@ -107,18 +140,26 @@ int main(int argc, char *argv[]) {
 
     // reactor
     while(1) {
+      if(sigCatch) {
+        break;
+      }
       memset(&resp, 0, sizeof(resp));
       // receive request
-      printf("[parent] receive reuqest\n");
+      printf("[parent] ready..\n");
       if((numRead = read(pfd[0], &req, REQ_SIZE))== -1) {
-        perror("[parent] read");
+        // when signal is caught..
+        if(errno == EINTR) {
+          printf("[parent] interrupted by SIGINT\n");
+        } else {
+          perror("[parent] read");
+        }
         continue;
       } else if (numRead == 0) {
         // If The descriptor pfd[1] (for writer) all closes..
         printf("[parent] read eof\n");
         break;
       }
-      printf("[parent] requested by %ld\n", req.clientId);
+      printf("[parent] receive reuqest by %ld\n", req.clientId);
       ifd = open(req.pathName, O_RDONLY);
       if(ifd == -1) {
         int savedErrno;
@@ -157,7 +198,7 @@ int main(int argc, char *argv[]) {
       }
       printf("[parent] end reactor\n");
     } // while end
-  }
+  } // fork end
 
   if(close(pfd[0]) == -1) {
     perror("[parent] close");
