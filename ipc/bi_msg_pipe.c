@@ -197,6 +197,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  // All child processes exit before this process exits..
   while(1) {
     if(waitpid(-1,  NULL, 0) == -1) {
       perror("waitpid");
@@ -204,7 +205,7 @@ int main(int argc, char *argv[]) {
     printf("[parent] wait for child .. %d\n", cnt);
     if(--cnt == 0) break;
   }
+
   printf("[parent] exit\n");
   exit(EXIT_SUCCESS);
-
 }
