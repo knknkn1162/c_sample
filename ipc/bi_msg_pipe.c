@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
   struct request req;
   struct response resp;
   int idx = -1;
-  int cnt = argc - 1; // the number of child processes
+  int cnt = (argc - 1) * 2; // child processes and forked server
   if(close(pfd[1]) == -1) {
     perror("[parent] close");
     exit(1);
@@ -124,6 +124,7 @@ int main(int argc, char *argv[]) {
 
   // reactor
   while(1) {
+    int serverPid;
     // it assumes to take some time..
     memset(&resp, 0, sizeof(resp));
     // receive request
@@ -149,9 +150,19 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
 
-    printf("[parent] requested by %ld (%d)\n", req.clientId, idx);
+    if((serverPid = fork()) < 0) {
+      perror("fork");
+      exit(1);
+    } else if(serverPid > 0) {
+      printf("[parent] end reactor\n");
+      continue;
+    }
+
+    // server clone
+    serverPid = getpid();
+    printf("[parent(%d)] requested by %ld (%d)\n", serverPid, req.clientId, idx);
     ifd = open(req.pathName, O_RDONLY);
-    sleep(1);
+
     if(ifd == -1) {
       int savedErrno;
       resp.mtype = RESP_FAILURE;
@@ -168,14 +179,14 @@ int main(int argc, char *argv[]) {
     
 
     // send response
-    printf("[parent->child(%d)] send response\n", idx);
+    printf("[parent(%d)->child(%d)] send response\n", serverPid, idx);
     while(1) {
       if((numRead = read(ifd, &buf, RESP_MSG_SIZE)) == -1) {
         perror("[parent] read");
         continue;
       } else if(numRead == 0) {
         // end msg
-        printf("[parent] EOF\n");
+        printf("[parent(%d)] EOF\n", serverPid);
         resp.mtype = RESP_END;
         write(rpfd[idx][1], &resp, sizeof(resp));
         break;
@@ -191,7 +202,7 @@ int main(int argc, char *argv[]) {
       perror("[parent] close");
       exit(1);
     }
-    printf("[parent] end reactor\n");
+    _exit(EXIT_SUCCESS);
   } // while end
 
   if(close(pfd[0]) == -1) {
