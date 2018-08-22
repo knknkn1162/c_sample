@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
 #include "msg.h"
 
 #define BUF_SIZE 256
@@ -17,6 +18,7 @@ int main(int argc, char *argv[]) {
   int i;
   pid_t pid;
   pid_t pid_table[PIPE_MAX];
+  struct sigaction sa;
   
   if(argc > PATH_MAX) {
     fprintf(stderr, "the # of argument is too numerous!\n");
@@ -35,6 +37,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_NOCLDWAIT;
+  sa.sa_handler = SIG_IGN;
+  sigaction(SIGCHLD, &sa, 0);
+
+  // send requests
   for(i = 1; i < argc; i++) {
     if((pid = fork()) < 0) {
       perror("fork");
@@ -109,7 +117,6 @@ int main(int argc, char *argv[]) {
   struct request req;
   struct response resp;
   int idx = -1;
-  int cnt = (argc - 1) * 2; // child processes and forked server
   if(close(pfd[1]) == -1) {
     perror("[parent] close");
     exit(1);
@@ -210,15 +217,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  // All child processes exit before this process exits..
-  while(1) {
-    if(waitpid(-1,  NULL, 0) == -1) {
-      perror("waitpid");
-    }
-    printf("[parent] wait for child .. %d\n", cnt);
-    if(--cnt == 0) break;
-  }
-
+  wait(NULL);
   printf("[parent] exit\n");
   exit(EXIT_SUCCESS);
 }
