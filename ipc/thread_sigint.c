@@ -12,7 +12,6 @@ void* worker(void*);
 
 
 static pthread_mutex_t threadMutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t condBuf = PTHREAD_COND_INITIALIZER;
 static int count = 0;
 
 
@@ -65,35 +64,34 @@ int main(int argc, char *argv[]) {
 
 
 void* reactor(void* arg) {
-  char buf[BUF_SIZE];
+  char *buf;
   // do sth
   while(1) {
     pthread_t pt_worker;
+    buf = malloc(BUF_SIZE);
     fgets(buf, sizeof(buf), stdin);
 
-    // TODO: If the cancellation occurs in the lock, When is the mutex unlocked until exited the program?
-    pthread_mutex_lock(&threadMutex);
+    // cancellation succeed
     pthread_create(&pt_worker, NULL, &worker, (void*)buf);
-    pthread_cond_wait(&condBuf, &threadMutex);
-    pthread_mutex_unlock(&threadMutex);
     pthread_detach(pt_worker);
   }
 
   pthread_exit(NULL);
 }
 
+// TODO: don't react cancellation, while main thread abort immediately.
 void* worker(void* arg) {
   char buf[BUF_SIZE];
-
-  pthread_mutex_lock(&threadMutex);
+  int cnt;
   strncpy(buf, (char*)arg, BUF_SIZE);
-  pthread_mutex_unlock(&threadMutex);
-  pthread_cond_signal(&condBuf);
+  // allocate arg by reactor()
+  free(arg);
 
   // assume to take some time..
   sleep(2);
   pthread_mutex_lock(&threadMutex);
-  printf("[%d] > %s", count++, buf);
+  cnt = count++;
   pthread_mutex_unlock(&threadMutex);
+  printf("[%d] > %s", cnt, buf);
   pthread_exit(NULL);
 }
