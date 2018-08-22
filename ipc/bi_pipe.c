@@ -162,6 +162,7 @@ int main(int argc, char *argv[]) {
         exit(1);
       }
       printf("[parent] end reactor\n");
+      continue;
     }
 
     // server clone
