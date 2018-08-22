@@ -55,6 +55,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  printf("[parent] ready..\n");
   wait(NULL);
   printf("[parent] exit\n");
   return 0;
