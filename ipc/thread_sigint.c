@@ -75,6 +75,7 @@ void* reactor(void* arg) {
     pthread_detach(pt_worker);
   }
 
+  pthread_exit(NULL);
 }
 
 void* worker(void* arg) {
