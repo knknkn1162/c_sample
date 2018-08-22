@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
       perror("fork");
       exit(1);
     } else if(serverPid > 0) {
-      if(close(rpfd[i-1][1]) == -1) {
+      if(close(rpfd[idx][1]) == -1) {
         perror("[parent] close");
         exit(1);
       }
