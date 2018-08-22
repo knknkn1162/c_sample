@@ -22,7 +22,7 @@ struct request {
 int main(int argc, char *argv[]) {
   
   int pfd[2], rpfd[PIPE_MAX][2];
-  int i;
+  int i, j;
   pid_t pid;
   pid_t pid_table[PIPE_MAX];
   struct sigaction sa;
@@ -64,9 +64,19 @@ int main(int argc, char *argv[]) {
         exit(1);
       }
       
-      if(close(rpfd[i-1][1]) == -1) {
-        perror("[child] close");
-        exit(1);
+
+      // close all write rpfds
+      // close rpfd read except the index `i`.
+      for(j = 1; j < argc; j++) {
+        if(close(rpfd[j-1][1]) == -1) {
+          perror("[child] close");
+          exit(1);
+        }
+        if(i == j) continue;
+        if(close(rpfd[j-1][0]) == -1) {
+          perror("[child] close");
+          exit(1);
+        }
       }
 
       // send request
@@ -91,6 +101,7 @@ int main(int argc, char *argv[]) {
           perror("[child] read");
           continue;
         } else if(numRead == 0) {
+          // doesn't work!!
           printf("[child] EOF\n");
           break;
         }
