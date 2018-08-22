@@ -10,6 +10,7 @@
 void* reactor(void*);
 void* worker(void*);
 
+
 static pthread_mutex_t threadMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t condBuf = PTHREAD_COND_INITIALIZER;
 static int count = 0;
@@ -61,6 +62,8 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
+
+
 void* reactor(void* arg) {
   char buf[BUF_SIZE];
   // do sth
@@ -68,6 +71,7 @@ void* reactor(void* arg) {
     pthread_t pt_worker;
     fgets(buf, sizeof(buf), stdin);
 
+    // TODO: If the cancellation occurs in the lock, When is the mutex unlocked until exited the program?
     pthread_mutex_lock(&threadMutex);
     pthread_create(&pt_worker, NULL, &worker, (void*)buf);
     pthread_cond_wait(&condBuf, &threadMutex);
