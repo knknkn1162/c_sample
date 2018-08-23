@@ -2,6 +2,10 @@
 #include <unistd.h>
 #define SERVER_KEY 0x1aaaaaa1
 
+#define SERVER_FIFO "/tmp/seqnum_sv"
+#define CLIENT_FIFO_TEMPLATE "/tmp/seqnum_cl.%ld"
+#define CLIENT_FIFO_NAME_LEN (sizeof(CLIENT_FIFO_TEMPLATE) + 20)
+
 
 #define REQ_MSG_SIZE PATH_MAX
 struct request {
