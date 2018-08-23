@@ -18,13 +18,13 @@ int main(int argc, char *argv[]) {
   long num;
   struct sigaction sa;
 
-sigemptyset(&sa.sa_mask);
-sa.sa_flags = 0;
-sa.sa_handler = signal_handler;
-if(sigaction(SIGINT, &sa, NULL) == -1) {
-  perror("sigaction");
-  exit(1);
-}
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  sa.sa_handler = signal_handler;
+  if(sigaction(SIGINT, &sa, NULL) == -1) {
+    perror("sigaction");
+    exit(1);
+  }
   
   while(1) {
     if(sigFlag) {
