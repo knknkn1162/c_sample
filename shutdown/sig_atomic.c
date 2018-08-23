@@ -16,6 +16,10 @@ int main(int argc, char *argv[]) {
   char buf[BUF_SIZE];
   long num;
   struct sigaction sa;
+  sigset_t mask, prevMask;
+  sigemptyset(&mask);
+  sigaddset(&mask, SIGINT);
+
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
   sa.sa_handler = signal_handler;
@@ -32,7 +36,9 @@ int main(int argc, char *argv[]) {
       if(sigFlag == 1 && errno == EINTR) {
         printf("shutdown..\n");
         // do shutdown
+        sigprocmask(SIG_SETMASK, &mask, &prevMask);
         sleep(2);
+        sigprocmask(SIG_SETMASK, &prevMask, NULL);
         break;
       }
       perror("fgets");
