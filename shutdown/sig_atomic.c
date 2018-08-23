@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
       if(sigFlag == 1 && errno == EINTR) {
         printf("shutdown..\n");
         // do shutdown
+        sleep(2);
         break;
       }
       perror("fgets");
