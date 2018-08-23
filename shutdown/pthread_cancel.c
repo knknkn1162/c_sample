@@ -46,6 +46,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  // termination
   if(pthread_join(pt, &res) != 0) {
     perror("pthread_join");
     exit(1);
