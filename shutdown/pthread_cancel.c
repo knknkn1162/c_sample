@@ -65,6 +65,7 @@ long doCalc(long num) {
 void* reactor(void* arg) {
   char buf[BUF_SIZE];
   long num;
+  // pthread_cleanup_push
   while(1) {
     if(fgets(buf, BUF_SIZE, stdin) == NULL) {
       perror("fgets");
@@ -82,4 +83,5 @@ void* reactor(void* arg) {
     num = atol(buf);
     printf("> %ld -> %ld\n", num, doCalc(num));
   }
+  // pthread_cleanup_pop
 }
