@@ -22,6 +22,10 @@ int main(int argc, char *argv[]) {
       perror("fgets");
       exit(1);
     }
+    if(strcmp(buf, "quit\n") == 0) {
+      printf("quit..\n");
+      break;
+    }
     if(strlen(buf) > 20) {
       fprintf(stderr, "> [error] too big!\n");
       continue;
