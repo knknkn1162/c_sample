@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
     if(fgets(buf, BUF_SIZE, stdin) == NULL) {
       if(sigFlag == 1 && errno == EINTR) {
         printf("shutdown..\n");
+        // do shutdown
         break;
       }
       perror("fgets");
