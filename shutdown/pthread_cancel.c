@@ -84,4 +84,5 @@ void* reactor(void* arg) {
     printf("> %ld -> %ld\n", num, doCalc(num));
   }
   // pthread_cleanup_pop
+  pthread_exit(NULL);
 }
