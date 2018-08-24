@@ -41,9 +41,17 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  // exit the server cloned process without zombie
+  sa.sa_flags = SA_NOCLDWAIT;
+  if(sigaction(SIGCHLD, &sa, NULL) == -1) {
+    perror("sigaction");
+    exit(1);
+  }
+
   while(1) {
     struct request req;
     struct response resp;
+    pid_t pid;
     int numRead;
     int ifd;
     char buf[RESP_MSG_SIZE];
@@ -53,6 +61,13 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
+    if((pid = fork()) == -1) {
+      perror("fork");
+      exit(1);
+    } else if (pid > 0) {
+      printf("[server] delegate the cloned process\n");
+      continue;
+    }
     memset(&resp, 0, sizeof(struct response));
     snprintf(clientFifo, CLIENT_FIFO_NAME_LEN, CLIENT_FIFO_TEMPLATE, (long)req.clientId);
     clientFd = open(clientFifo, O_WRONLY);
@@ -74,8 +89,7 @@ int main(int argc, char *argv[]) {
           break;
       }
       errno = savedErrno;
-      perror("[server] open");
-      continue;
+      exit(EXIT_FAILURE);
     }
 
     // send response
@@ -102,5 +116,9 @@ int main(int argc, char *argv[]) {
     if(close(clientFd) == -1) {
       perror("close");
     }
+    // exit cloned process
+    _exit(EXIT_SUCCESS);
   }
+
+  return 0;
 }
