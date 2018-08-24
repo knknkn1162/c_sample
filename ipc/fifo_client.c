@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
         flag = 0;
         break;
       case RESP_FAILURE:
-        fprintf(stderr, "ERROR: %s\n", resp.message);
+        fprintf(stderr, "[client(%d)] ERROR: %s\n", getpid(), resp.message);
         flag = 0;
         break;
     }
