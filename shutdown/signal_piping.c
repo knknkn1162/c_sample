@@ -54,22 +54,21 @@ int main(void) {
     if(select(maxfd, &fds, NULL, NULL, NULL) == -1) {
       if(errno == EINTR) {
         fprintf(stderr, "signal caught!\n");
-        doShutdown();
+      } else {
+        perror("select");
         exit(1);
       }
-      perror("select");
-      exit(1);
     }
 
-    /* if(FD_ISSET(sig_pipe[0], &fds)) { */
-      /* if (read(sig_pipe[0], &info, sizeof(siginfo_t)) > 0) { */
-        /* if(info.si_signo == SIGINT) { */
-          /* printf("signal catch\n"); */
-          /* break; */
-        /* } */
-      /* } */
-      /* continue; */
-    /* } */
+    if(FD_ISSET(sig_pipe[0], &fds)) {
+      if (read(sig_pipe[0], &info, sizeof(siginfo_t)) > 0) {
+        if(info.si_signo == SIGINT) {
+          printf("signal catch\n");
+          break;
+        }
+      }
+      continue;
+    }
 
     if(FD_ISSET(STDIN_FILENO, &fds)) {
       if(fgets(buf, BUF_SIZE, stdin) == NULL) {
