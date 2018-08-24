@@ -9,6 +9,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <fcntl.h>
 
 #define SYSTEM_V_MESSAGE
 #include "msg.h"
@@ -35,9 +36,10 @@ int main(int argc, char *argv[]) {
     int msgLen;
     struct request req;
     struct response resp;
+    int fd;
     pid_t pid;
     // ssize_t msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg);
-    if((msgLen = msgrcv(serverId, &req, REQ_MSG_SIZE, 0, 0)) == -1) {
+    if((msgLen = msgrcv(serverId, &req, REQ_BODY_SIZE, 0, 0)) == -1) {
       exit_with_message_queue(serverId, "msgrcv");
     }
     printf("[server] receive message with %ld\n", req.clientId);
@@ -48,9 +50,18 @@ int main(int argc, char *argv[]) {
     } else if(pid > 0) {
       continue;
     }
+
+    /* fd = open(req.pathName, O_RDONLY); */
+    /* if(fd == -1) { */
+      /* perror("[server] open"); */
+
+      /* resp.mtype = RESP_FAILURE; */
+      /* strncpy(resp.message, strerror(errno), strlen(strerror(errno))); */
+    /* } */
+
     resp.mtype = RESP_DATA;
     strncpy(resp.message, req.pathName, strlen(req.pathName));
-    if(msgsnd(req.clientId, &resp, sizeof(resp) - sizeof(long), 0) == -1) {
+    if(msgsnd(req.clientId, &resp, strlen(req.pathName), 0) == -1) {
       exit_with_message_queue(serverId, "msgsnd");
     }
     printf("[server] send message to %ld\n", req.clientId);

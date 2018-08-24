@@ -37,6 +37,9 @@ struct response {
 #define RESP_END 3
 
 #ifdef SYSTEM_V_MESSAGE
+#define REQ_BODY_SIZE sizeof(struct request) - sizeof(long)
+#define RESP_BODY_SIZE RESP_MSG_SIZE
+
 int rm_message_queue(int msqid) {
   return msgctl(msqid, IPC_RMID, NULL);
 }

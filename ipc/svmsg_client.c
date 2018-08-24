@@ -60,11 +60,11 @@ int main(int argc, char *argv[]) {
   printf("[client] send message to %d\n", clientId);
 
   // ssize_t msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg);
-  if(msgrcv(clientId, &resp, sizeof(resp) - sizeof(long), 0, 0) == -1) {
+  if(msgrcv(clientId, &resp, RESP_BODY_SIZE, 0, 0) == -1) {
     printf("%s\n", resp.message);
     exit_with_message_queue(clientId, "msgrcv");
   }
-  printf("[client] receive message to server\n");
+  printf("[client] receive message with server\n");
 
   switch(resp.mtype) {
     case RESP_DATA:
