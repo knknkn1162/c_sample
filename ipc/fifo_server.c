@@ -44,12 +44,16 @@ int main(int argc, char *argv[]) {
   while(1) {
     struct request req;
     struct response resp;
+    int numRead;
+    int ifd;
+    char buf[RESP_MSG_SIZE];
     // never see EOF because of the dummyFd.
     if(read(serverFd, &req, sizeof(struct request)) != sizeof(struct request)) {
       fprintf(stderr, "discarding\n");
       continue;
     }
 
+    memset(&resp, 0, sizeof(struct response));
     snprintf(clientFifo, CLIENT_FIFO_NAME_LEN, CLIENT_FIFO_TEMPLATE, (long)req.clientId);
     clientFd = open(clientFifo, O_WRONLY);
 
@@ -58,12 +62,41 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
 
+    printf("[client] receive reuqest by %ld\n", req.clientId);
+    ifd = open(req.pathName, O_RDONLY);
+    if(ifd == -1) {
+      int savedErrno;
+      resp.mtype = RESP_FAILURE;
+      strncpy(resp.message, strerror(errno), strlen(strerror(errno)) + 1);
+      savedErrno = errno;
+      if(write(clientFd, &resp, sizeof(resp)) != sizeof(resp)) {
+          perror("write");
+          break;
+      }
+      errno = savedErrno;
+      perror("[server] open");
+      continue;
+    }
 
-    resp.mtype = RESP_DATA;
-    strncpy(resp.message, req.pathName, strlen(req.pathName));
-
-    if(write(clientFd, &resp, sizeof(struct response)) != sizeof(struct response)) {
-      fprintf(stderr, "server write\n");
+    // send response
+    printf("[client] send response\n");
+    while(1) {
+      if((numRead = read(ifd, &buf, RESP_MSG_SIZE)) == -1) {
+        perror("[client] read");
+        continue;
+      } else if(numRead == 0) {
+        // end msg
+        printf("[client] EOF\n");
+        resp.mtype = RESP_END;
+        write(clientFd, &resp, sizeof(resp));
+        break;
+      }
+      resp.mtype = RESP_DATA;
+      strncpy(resp.message, buf, numRead);
+      if(write(clientFd, &resp, RESP_SIZE) != RESP_SIZE) {
+        perror("write");
+        break;
+      }
     }
 
     if(close(clientFd) == -1) {
