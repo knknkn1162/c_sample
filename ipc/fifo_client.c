@@ -56,23 +56,32 @@ int main(int argc, char *argv[]) {
     perror("open");
   }
 
-  if(read(clientFd, &resp, sizeof(struct response)) != sizeof(struct response)) {
-    perror("read");
+  int flag = 1;
+  while(flag) {
+    memset(&resp, 0, sizeof(struct response));
+    if(read(clientFd, &resp, sizeof(struct response)) != sizeof(struct response)) {
+      perror("read");
+      break;
+    }
+
+    switch(resp.mtype) {
+      case RESP_DATA:
+        printf("[child(%d)]> %s\n", getpid(), resp.message);
+        break;
+      case RESP_END:
+        printf("[child(%d)]> end\n", getpid());
+        flag = 0;
+        break;
+      case RESP_FAILURE:
+        fprintf(stderr, "ERROR: %s\n", resp.message);
+        flag = 0;
+        break;
+    }
+  }
+
+  if(close(clientFd) == -1) {
+    perror("close");
     exit(1);
   }
-
-  switch(resp.mtype) {
-    case RESP_DATA:
-      printf("[child(%d)]> %s\n", getpid(), resp.message);
-      break;
-    case RESP_END:
-      printf("[child(%d)]> end\n", getpid());
-      break;
-    case RESP_FAILURE:
-      fprintf(stderr, "ERROR\n");
-      break;
-  }
-
   return 0;
-
 }
