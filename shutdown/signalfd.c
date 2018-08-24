@@ -6,6 +6,7 @@
 #include <sys/param.h> // MAX
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #define BUF_SIZE 100
 
@@ -15,6 +16,7 @@ int main(int argc, char *argv[]) {
   char buf[BUF_SIZE];
   long num;
   int sfd, maxfd;
+  int flags;
   fd_set fds;
   sigset_t mask;
 
@@ -30,18 +32,29 @@ int main(int argc, char *argv[]) {
     perror("signalfd");
     exit(1);
   }
+
+  flags = fcntl(sfd, F_GETFL, 0);
+  if(flags == -1) {
+    perror("fcntl F_GETFL");
+    exit(1);
+  }
+
+  if(fcntl(sfd, F_SETFL, flags | O_NONBLOCK) == -1) {
+    perror("fcntl F_SETFL");
+    exit(1);
+  }
+
   FD_ZERO(&fds);
   FD_SET(STDIN_FILENO, &fds);
   FD_SET(sfd, &fds);
-  
-
   maxfd = MAX(sfd, STDIN_FILENO) + 1;
+
   while(1) {
+    // race between sfd and STDIN_FILENO..?
     if(select(maxfd, &fds, NULL, NULL, NULL) == -1) {
       perror("select");
     }
 
-    // when signal catches
     if(FD_ISSET(sfd, &fds)) {
       struct signalfd_siginfo fdsi;
       if(read(sfd, &fdsi, sizeof(struct signalfd_siginfo)) != sizeof(struct signalfd_siginfo)) {
@@ -54,7 +67,7 @@ int main(int argc, char *argv[]) {
       }
       continue;
     }
-    // TODO: always catch this code
+
     if(FD_ISSET(STDIN_FILENO, &fds)) {
       if(fgets(buf, BUF_SIZE, stdin) == NULL) {
         perror("fgets");
@@ -73,7 +86,6 @@ int main(int argc, char *argv[]) {
       printf("> %ld -> %ld\n", num, doCalc(num));
     }
   }
-
   return 0;
 }
 
