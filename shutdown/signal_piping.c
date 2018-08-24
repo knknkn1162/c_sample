@@ -61,6 +61,7 @@ int main(void) {
     }
 
     if(FD_ISSET(sig_pipe[0], &fds)) {
+      // never reaches!!
       if (read(sig_pipe[0], &info, sizeof(siginfo_t)) > 0) {
         if(info.si_signo == SIGINT) {
           printf("signal catch\n");
