@@ -66,10 +66,10 @@ int main(int argc, char *argv[]) {
 
     switch(resp.mtype) {
       case RESP_DATA:
-        printf("[child(%d)]> %s\n", getpid(), resp.message);
+        printf("[client(%d)]> %s\n", getpid(), resp.message);
         break;
       case RESP_END:
-        printf("[child(%d)]> end\n", getpid());
+        printf("[client(%d)]> end\n", getpid());
         flag = 0;
         break;
       case RESP_FAILURE:
