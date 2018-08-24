@@ -7,31 +7,37 @@
 #include <unistd.h>
 #include <limits.h>
 #include <string.h>
-#include "sv_msg.h"
+#include <errno.h>
+
+#define SYSTEM_V_MESSAGE
+#include "msg.h"
 
 int main(int argc, char *argv[]) {
-  int msqid;
+  int serverId;
 
-  msqid = msgget(IPC_PRIVATE, S_IRUSR | S_IWUSR);
-  if(msqid == -1) {
+  serverId = msgget(SERVER_KEY, IPC_CREAT | S_IRUSR | S_IWUSR);
+  if(serverId == -1) {
     perror("msgget");
   }
+  printf("[server] create System V key\n");
 
   while(1) {
     int msgLen;
     struct request req;
-    struct response res;
+    struct response resp;
     // ssize_t msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg);
-    if((msgLen = msgrcv(msqid, &req, REQ_MSG_SIZE, 0, 0)) == -1) {
-        perror("msgrcv");
+    if((msgLen = msgrcv(serverId, &req, REQ_MSG_SIZE, 0, 0)) == -1) {
+      exit_with_message_queue(serverId, "msgrcv");
     }
+    printf("[server] receive message with %ld\n", req.clientId);
 
     // echo
-    strncpy(res.mtext, req.mtext, RESP_MSG_SIZE);
-    if(msgsnd(msqid, &res, msgLen, 0) == -1) {
-      perror("msgsnd");
-      exit(1);
+    resp.mtype = RESP_DATA;
+    strncpy(resp.message, req.pathName, strlen(req.pathName));
+    if(msgsnd(req.clientId, &resp, sizeof(resp) - sizeof(long), 0) == -1) {
+      exit_with_message_queue(serverId, "msgsnd");
     }
+    printf("[server] send message to %ld\n", req.clientId);
   }
   return 0;
 }

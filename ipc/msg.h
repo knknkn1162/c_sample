@@ -1,5 +1,12 @@
 #include <limits.h>
 #include <unistd.h>
+#include <sys/ipc.h> 
+#include <sys/msg.h>
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
 #define SERVER_KEY 0x1aaaaaa1
 
 #define SERVER_FIFO "/tmp/seqnum_sv"
@@ -9,6 +16,9 @@
 
 #define REQ_MSG_SIZE PATH_MAX
 struct request {
+#ifdef SYSTEM_V_MESSAGE
+  long mtype;
+#endif
   long clientId;
   char pathName[REQ_MSG_SIZE];
 };
@@ -25,3 +35,16 @@ struct response {
 #define RESP_FAILURE 1
 #define RESP_DATA 2
 #define RESP_END 3
+
+#ifdef SYSTEM_V_MESSAGE
+int rm_message_queue(int msqid) {
+  return msgctl(msqid, IPC_RMID, NULL);
+}
+void exit_with_message_queue(int msqid, char* errmsg) {
+  int savedErrno = errno;
+  perror(errmsg);
+  rm_message_queue(msqid);
+  errno = savedErrno;
+  abort();
+}
+#endif
