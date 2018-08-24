@@ -36,9 +36,12 @@ int main(int argc, char *argv[]) {
     int msgLen;
     struct request req;
     struct response resp;
-    int fd;
+    int ifd;
+    int numRead;
+    char buf[RESP_MSG_SIZE];
     pid_t pid;
     // ssize_t msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg);
+    printf("[server] ready..\n");
     if((msgLen = msgrcv(serverId, &req, REQ_BODY_SIZE, 0, 0)) == -1) {
       exit_with_message_queue(serverId, "msgrcv");
     }
@@ -51,20 +54,41 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
-    /* fd = open(req.pathName, O_RDONLY); */
-    /* if(fd == -1) { */
-      /* perror("[server] open"); */
-
-      /* resp.mtype = RESP_FAILURE; */
-      /* strncpy(resp.message, strerror(errno), strlen(strerror(errno))); */
-    /* } */
-
-    resp.mtype = RESP_DATA;
-    strncpy(resp.message, req.pathName, strlen(req.pathName));
-    if(msgsnd(req.clientId, &resp, strlen(req.pathName), 0) == -1) {
-      exit_with_message_queue(serverId, "msgsnd");
+    ifd = open(req.pathName, O_RDONLY);
+    if(ifd == -1) {
+      int savedErrno;
+      resp.mtype = RESP_FAILURE;
+      strncpy(resp.message, strerror(errno), strlen(strerror(errno)) + 1);
+      savedErrno = errno;
+      if(msgsnd(req.clientId, &resp, strlen(resp.message), 0) == -1) {
+        exit_with_message_queue(serverId, "msgsnd");
+      }
+      errno = savedErrno;
+      exit(EXIT_FAILURE);
     }
-    printf("[server] send message to %ld\n", req.clientId);
+
+    // send response
+    printf("[client] send response\n");
+    while(1) {
+      if((numRead = read(ifd, &buf, RESP_MSG_SIZE)) == -1) {
+        perror("[client] read");
+        continue;
+      } else if(numRead == 0) {
+        // end msg
+        printf("[client] EOF\n");
+        resp.mtype = RESP_END;
+        if(msgsnd(req.clientId, &resp, 0, 0) == -1) {
+          exit_with_message_queue(serverId, "msgsnd");
+        }
+        break;
+      }
+      resp.mtype = RESP_DATA;
+      strncpy(resp.message, buf, numRead);
+      if(msgsnd(req.clientId, &resp, numRead, 0) == -1) {
+        exit_with_message_queue(serverId, "msgsnd");
+      }
+      printf("[server] send message to %ld\n", req.clientId);
+    }
     exit(EXIT_SUCCESS);
   }
   return 0;

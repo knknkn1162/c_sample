@@ -23,6 +23,7 @@ int main(int argc, char *argv[]) {
   int serverId;
   struct request req;
   struct response resp;
+  int flag = 1;
 
   if(argc < 2) {
     fprintf(stderr, "usage error\n");
@@ -59,23 +60,26 @@ int main(int argc, char *argv[]) {
   }
   printf("[client] send message to %d\n", clientId);
 
-  // ssize_t msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg);
-  if(msgrcv(clientId, &resp, RESP_BODY_SIZE, 0, 0) == -1) {
-    printf("%s\n", resp.message);
-    exit_with_message_queue(clientId, "msgrcv");
-  }
-  printf("[client] receive message with server\n");
-
-  switch(resp.mtype) {
-    case RESP_DATA:
-      printf("[client(%d)]> %s\n", getpid(), resp.message);
-      break;
-    case RESP_END:
-      printf("[client(%d)]> end\n", getpid());
-      break;
-    case RESP_FAILURE:
-      fprintf(stderr, "[client(%d)] ERROR: %s\n", getpid(), resp.message);
-      break;
+  while(flag) {
+    // ssize_t msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg);
+    if(msgrcv(clientId, &resp, RESP_BODY_SIZE, 0, 0) == -1) {
+      printf("%s\n", resp.message);
+      exit_with_message_queue(clientId, "msgrcv");
+    }
+    printf("[client] receive message with server\n");
+    switch(resp.mtype) {
+      case RESP_DATA:
+        printf("[client(%d)]> %s\n", getpid(), resp.message);
+        break;
+      case RESP_END:
+        printf("[client(%d)]> end\n", getpid());
+        flag = 0;
+        break;
+      case RESP_FAILURE:
+        fprintf(stderr, "[client(%d)] ERROR: %s\n", getpid(), resp.message);
+        flag = 0;
+        break;
+    }
   }
   return 0;
 }
