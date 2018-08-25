@@ -11,13 +11,14 @@
 #define BUF_SIZE 100
 
 long doCalc(long a);
+void doShutdown(void);
 
 int main(int argc, char *argv[]) {
   char buf[BUF_SIZE];
   long num;
   int sfd, maxfd;
   int flags;
-  fd_set fds;
+  fd_set fds, tmp_fds;
   sigset_t mask;
 
   sigemptyset(&mask);
@@ -33,29 +34,19 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  flags = fcntl(sfd, F_GETFL, 0);
-  if(flags == -1) {
-    perror("fcntl F_GETFL");
-    exit(1);
-  }
-
-  if(fcntl(sfd, F_SETFL, flags | O_NONBLOCK) == -1) {
-    perror("fcntl F_SETFL");
-    exit(1);
-  }
-
   FD_ZERO(&fds);
   FD_SET(STDIN_FILENO, &fds);
   FD_SET(sfd, &fds);
   maxfd = MAX(sfd, STDIN_FILENO) + 1;
 
   while(1) {
+    memcpy(&tmp_fds, &fds, sizeof(fd_set));
     // race between sfd and STDIN_FILENO..?
-    if(select(maxfd, &fds, NULL, NULL, NULL) == -1) {
+    if(select(maxfd, &tmp_fds, NULL, NULL, NULL) == -1) {
       perror("select");
     }
 
-    if(FD_ISSET(sfd, &fds)) {
+    if(FD_ISSET(sfd, &tmp_fds)) {
       struct signalfd_siginfo fdsi;
       if(read(sfd, &fdsi, sizeof(struct signalfd_siginfo)) != sizeof(struct signalfd_siginfo)) {
         perror("read signal");
@@ -65,10 +56,9 @@ int main(int argc, char *argv[]) {
         printf("signal catch\n");
         break;
       }
-      continue;
     }
 
-    if(FD_ISSET(STDIN_FILENO, &fds)) {
+    if(FD_ISSET(STDIN_FILENO, &tmp_fds)) {
       if(fgets(buf, BUF_SIZE, stdin) == NULL) {
         perror("fgets");
         exit(1);
@@ -86,9 +76,17 @@ int main(int argc, char *argv[]) {
       printf("> %ld -> %ld\n", num, doCalc(num));
     }
   }
+
+  doShutdown();
   return 0;
 }
 
 long doCalc(long num) {
   return num*2;
+}
+
+void doShutdown(void) {
+  printf("graceful shutdown..\n");
+  // go shutdown..
+  sleep(2);
 }
