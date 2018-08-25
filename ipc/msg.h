@@ -10,6 +10,8 @@
 #define SERVER_KEY 0x1aaaaaa1
 #define SHM_KEY 0x1234
 #define SEM_KEY 0x5678
+#define READ_SEM 0x01
+#define WRITE_SEM 0x02
 
 
 #define SERVER_FIFO "/tmp/seqnum_sv"
