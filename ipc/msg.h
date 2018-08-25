@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <errno.h>
 #define SERVER_KEY 0x1aaaaaa1
+#define SHM_KEY 0x1234
+#define SEM_KEY 0x5678
+
 
 #define SERVER_FIFO "/tmp/seqnum_sv"
 #define CLIENT_FIFO_TEMPLATE "/tmp/seqnum_cl.%ld"
