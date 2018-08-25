@@ -21,7 +21,7 @@ void doShutdown(void);
 
 int main(void) {
   struct sigaction sa;
-  fd_set fds;
+  fd_set fds, tmp_fds;
   int maxfd;
   int flags;
   char buf[BUF_SIZE];
@@ -51,27 +51,27 @@ int main(void) {
   while (1) {
     long num;
     siginfo_t info;
-    if(select(maxfd, &fds, NULL, NULL, NULL) == -1) {
+    memcpy(&tmp_fds, &fds, sizeof(fd_set));
+    if(select(maxfd, &tmp_fds, NULL, NULL, NULL) == -1) {
       if(errno == EINTR) {
-        fprintf(stderr, "signal caught!\n");
+        continue;
       } else {
         perror("select");
         exit(1);
       }
     }
 
-    if(FD_ISSET(sig_pipe[0], &fds)) {
-      // never reaches!!
+    if(FD_ISSET(sig_pipe[0], &tmp_fds)) {
       if (read(sig_pipe[0], &info, sizeof(siginfo_t)) > 0) {
         if(info.si_signo == SIGINT) {
-          printf("signal catch\n");
+          fprintf(stderr, "signal catch\n");
           break;
         }
       }
       continue;
     }
 
-    if(FD_ISSET(STDIN_FILENO, &fds)) {
+    if(FD_ISSET(STDIN_FILENO, &tmp_fds)) {
       if(fgets(buf, BUF_SIZE, stdin) == NULL) {
         perror("fgets");
         exit(1);
@@ -89,6 +89,8 @@ int main(void) {
       printf("> %ld -> %ld\n", num, doCalc(num));
     }
   }
+  doShutdown();
+  return 0;
 }
 
 long doCalc(long num) {
