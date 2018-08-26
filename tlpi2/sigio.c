@@ -15,7 +15,7 @@ int ttySetCbreak(int fd, struct termios *prevTermios);
 
 int main(int argc, char *argv[]) {
 
-  int flags, j;
+  int flags;
   long cnt;
   struct termios origTermios;
   char ch;
