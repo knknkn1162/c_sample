@@ -6,7 +6,6 @@
 
 int main(int argc, char *argv[]) {
   int pfd[2];
-  int i;
   struct sigaction sa;
 
   sa.sa_flags = SA_NOCLDWAIT;
@@ -22,72 +21,27 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  switch(fork()) {
-    case -1:
-      perror("fork");
-      exit(1);
-    case 0:
-      if(close(pfd[0]) == -1) {
-        perror("close read");
-        exit(1);
-      }
-
-      // STDOUT_FILENO -> pfd[1]
-      if(pfd[1] != STDOUT_FILENO) {
-        if(dup2(pfd[1], STDOUT_FILENO) == -1) {
-          perror("dup2");
-          exit(1);
-        }
-        if(close(pfd[1]) == -1) {
-          perror("close 2");
-        }
-      }
-
-      execlp("ls", "ls", (char*)NULL);
-      perror("execlp ls");
-      exit(1);
-
-    default:
-      // To create next child
-      break;
+  if(fork() == 0) {
+    close(pfd[0]);
+    dup2(pfd[1], STDOUT_FILENO);
+    close(pfd[1]);
+    execlp("ls", "ls", (char*)NULL);
+    exit(1);
   }
 
   // generate next process
-  switch(fork()) {
-    case -1:
-      perror("fork");
-      exit(1);
-    case 0:
-      if(close(pfd[1]) == -1) {
-        perror("close write");
-      }
-
-      if(pfd[0] != STDIN_FILENO) {
-        if(dup2(pfd[0], STDIN_FILENO) == -1) {
-          perror("dup2");
-          exit(1);
-        }
-        if(close(pfd[0]) == -1) {
-          perror("close");
-          exit(1);
-        }
-      }
-
-      execlp("wc", "c", "-l", (char*)NULL);
-      perror("execlp wc");
-      exit(1);
-    default:
-      break;
+  if(fork() == 0) {
+    // never ends witout closing the output file descriptor
+    close(pfd[1]);
+    dup2(pfd[0], STDIN_FILENO);
+    close(pfd[0]);
+    execlp("wc", "c", "-l", (char*)NULL);
+    exit(1);
   }
-
-  for(i = 0; i < 2; i++) {
-    if(close(pfd[i]) == -1) {
-      perror("close");
-      exit(1);
-    }
-  }
+  close(pfd[0]);
+  // never ends witout closing the output file descriptor
+  close(pfd[1]);
 
   wait(NULL);
-
   return 0;
 }

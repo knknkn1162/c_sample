@@ -10,31 +10,19 @@
 int main(void) {
   int rfd = open("test.txt", O_RDONLY);
   int wfd = open("test.txt", O_WRONLY | O_TRUNC);
-  //struct sigaction sa;
-
-  if(rfd == -1) {
-    perror("Fd");
+  struct sigaction sa;
+  sa.sa_flags = SA_NOCLDWAIT;
+  sa.sa_handler = SIG_IGN;
+  sigemptyset(&sa.sa_mask);
+  if(sigaction(SIGCHLD, &sa, NULL) == -1) {
+    perror("sigaction");
     exit(1);
   }
-  if(wfd == -1) {
-    perror("Fd");
-    exit(1);
-  }
-  /* sa.sa_handler = SIG_IGN; */
-  /* sigemptyset(&sa.sa_mask); */
-  /* if(sigaction(SIGCHLD, &sa, NULL) == -1) { */
-    /* perror("sigaction"); */
-    /* exit(1); */
-  /* } */
 
   if(fork() == 0) {
     close(rfd);
     dup2(wfd, STDOUT_FILENO);
-
-    if(close(wfd) == -1) {
-      perror("close");
-      exit(1);
-    }
+    close(wfd);
     execlp("ls", "ls", (char*)NULL);
     exit(1);
   }
@@ -44,9 +32,7 @@ int main(void) {
   if(fork() == 0) {
     close(wfd);
     dup2(rfd, STDIN_FILENO);
-    if(close(rfd) == -1) {
-      perror("exit");
-    }
+    close(rfd);
     execlp("wc", "wc", "-l", (char*)NULL);
     exit(1);
   }
