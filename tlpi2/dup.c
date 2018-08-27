@@ -5,14 +5,34 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 
 int main(void) {
-  int fd = open("test.txt", O_RDWR);
+  int rfd = open("test.txt", O_RDONLY);
+  int wfd = open("test.txt", O_WRONLY | O_TRUNC);
+  struct sigaction sa;
+
+  if(rfd == -1) {
+    perror("Fd");
+    exit(1);
+  }
+  if(wfd == -1) {
+    perror("Fd");
+    exit(1);
+  }
+
+  sa.sa_flags = SA_NOCLDWAIT;
+  sa.sa_handler = SIG_IGN;
+  sigemptyset(&sa.sa_mask);
+  if(sigaction(SIGCHLD, &sa, NULL) == -1) {
+    perror("sigaction");
+    exit(1);
+  }
 
   if(fork() == 0) {
-    dup2(fd, STDOUT_FILENO);
+    dup2(wfd, STDOUT_FILENO);
 
-    if(close(fd) == -1) {
+    if(close(wfd) == -1) {
       perror("close");
       exit(1);
     }
@@ -21,13 +41,16 @@ int main(void) {
   }
 
   if(fork() == 0) {
-    dup2(fd, STDIN_FILENO);
-    if(close(fd) == -1) {
+    dup2(rfd, STDIN_FILENO);
+    if(close(rfd) == -1) {
       perror("exit");
     }
     execlp("wc", "wc", "-l", (char*)NULL);
     exit(1);
   }
+
+  /* close(rfd); */
+  /* close(wfd); */
 
   wait(NULL);
   exit(1);
