@@ -51,7 +51,7 @@ int main(void) {
     exit(1);
   }
 
+  /* descriptor need not to be closed */
   wait(NULL);
   exit(1);
-
 }
