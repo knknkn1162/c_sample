@@ -11,47 +11,53 @@
 #define BUF_SIZE 256
 
 int main(int argc, char *argv[]) {
-  int serverFd, clientFd;
+  int serverFd;
   int dummyFd;
-  struct sigaction sa;
+  int flags;
+  char *pathName = "/tmp/server";
 
-
-  umask(0);
-  if(mkfifo(argv[1], S_IRUSR | S_IWUSR) == -1 && errno != EEXIST) {
+  if(mkfifo(pathName, O_CREAT | S_IRUSR | S_IWUSR) == -1 && errno != EEXIST) {
     perror("mkfifo");
     exit(1);
   }
 
-
-  serverFd = open(argv[1], O_RDONLY);
+  fprintf(stderr, "mkfifo\n");
+  serverFd = open(pathName, O_RDONLY);
   if(serverFd == -1) {
     perror("open");
   }
+
   // open an extra write descriptor, so that we never see EOF
-  dummyFd = open(argv[1], O_WRONLY);
+  fprintf(stderr, "open serverFd\n");
+  dummyFd = open(pathName, O_WRONLY);
   if(dummyFd == -1) {
     perror("open");
     exit(1);
   }
- 
-  sigemptyset(&sa.sa_mask);
-  sa.sa_handler = SIG_IGN;
-  sa.sa_flags = 0;
-  if(sigaction(SIGPIPE, &sa, NULL) == -1) {
-    perror("sigaction");
-    exit(1);
+  
+  flags = fcntl(serverFd, F_GETFL);
+  if(flags == -1) {
+    perror("fcntl");
+  }
+  if(fcntl(serverFd, F_SETFL, flags | O_NONBLOCK) == -1) {
+    perror("fcntl SETFD");
   }
 
   // echo
   while(1) {
     char buf[BUF_SIZE];
     int numRead;
+    write(STDOUT_FILENO, ".", 1);
+    // never see EOF
     if((numRead = read(serverFd, buf, BUF_SIZE)) == -1) {
       fprintf(stderr, "errno: %d(%s)\n", errno, strerror(errno));
       continue;
+    } else if (numRead == 0) {
+      write(STDOUT_FILENO, "0", 1);
     } else {
-      printf(">");
+      write(STDOUT_FILENO, "> ", 2);
       write(STDOUT_FILENO, buf, numRead);
+      write(STDOUT_FILENO, "\n", 1);
     }
   }
 
