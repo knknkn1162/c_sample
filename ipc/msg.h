@@ -17,6 +17,9 @@
 #define SERVER_FIFO "/tmp/seqnum_sv"
 #define CLIENT_FIFO_TEMPLATE "/tmp/seqnum_cl.%ld"
 #define CLIENT_FIFO_NAME_LEN (sizeof(CLIENT_FIFO_TEMPLATE) + 20)
+#define SERVER_QUEUE "/mq"
+#define CLIENT_QUEUE_TEMPLATE "/client/cl.%ld"
+#define CLIENT_QUEUE_NAME_LEN (sizeof(CLIENT_QUEUE_TEMPLATE) + 20)
 
 
 #define REQ_MSG_SIZE PATH_MAX
