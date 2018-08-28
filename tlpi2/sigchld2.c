@@ -10,6 +10,7 @@ static volatile int numLiveChildren = 0;
 
 static void handler(int sig) {
   pid_t childPid;
+  write(STDOUT_FILENO, "o", 1);
   while((childPid = waitpid(-1, NULL, WNOHANG)) > 0) {
     write(STDOUT_FILENO, "*", 1);
     numLiveChildren--;
