@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     perror("sigprocmask");
     exit(1);
   }
-  sfd = signalfd(-1, &mask, 0);
+  sfd = signalfd(-1, &mask, SFD_NONBLOCK);
   if(sfd == -1) {
     perror("signalfd");
   }
@@ -24,7 +24,11 @@ int main(int argc, char *argv[]) {
   while(1) {
     int num = read(sfd, &fdsi, sizeof(struct signalfd_siginfo));
     if(num != sizeof(struct signalfd_siginfo)) {
+      if(errno == EAGAIN) {
+        continue;
+      }
       perror("read");
+      exit(1);
     }
     // ssi_signo, ssi_code
     if(fdsi.ssi_signo == SIGINT) {
