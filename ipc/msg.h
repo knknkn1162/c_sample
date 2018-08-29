@@ -14,13 +14,20 @@
 #define WRITE_SEM 0x02
 
 
+// for fifo
 #define SERVER_FIFO "/tmp/seqnum_sv"
 #define CLIENT_FIFO_TEMPLATE "/tmp/seqnum_cl.%ld"
 #define CLIENT_FIFO_NAME_LEN (sizeof(CLIENT_FIFO_TEMPLATE) + 20)
+
+// for POSIX message queue
 #define SERVER_QUEUE "/server"
 #define CLIENT_QUEUE_TEMPLATE "/client.%ld"
 #define CLIENT_QUEUE_NAME_LEN (sizeof(CLIENT_QUEUE_TEMPLATE) + 20)
 
+// for unix domain socket
+#define SERVER_SOCK_PATH "/tmp/mysock"
+#define CLIENT_SOCK_TEMPLATE "/tmp/client.%ld"
+#define BACKLOG 5
 
 #define REQ_MSG_SIZE PATH_MAX
 struct request {
