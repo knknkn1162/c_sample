@@ -6,18 +6,21 @@
 #include <string.h>
 
 #define BUF_SIZE 100
-#define SOCK_PATH "/tmp/mysock"
+#define SERVER_SOCK_PATH "/tmp/mysock"
+#define CLIENT_SOCK_TEMPLATE "/tmp/client.%ld"
+#define BACKLOG 5
 
 int main(int argc, char *argv[]) {
   struct sockaddr_un svaddr;
   int sfd;
+  int num;
+  char buf[BUF_SIZE];
 
   if(argc < 2) {
     fprintf(stderr, "usage error\n");
     exit(1);
   }
 
-  printf("PID: %d\n", getpid());
   sfd = socket(AF_UNIX, SOCK_STREAM, 0);
   if(sfd == -1) {
     perror("socket");
@@ -26,9 +29,10 @@ int main(int argc, char *argv[]) {
 
   memset(&svaddr, 0, sizeof(struct sockaddr_un));
   svaddr.sun_family = AF_UNIX;
-  strncpy(svaddr.sun_path, SOCK_PATH, sizeof(svaddr.sun_path) - 1);
+  strncpy(svaddr.sun_path, SERVER_SOCK_PATH, sizeof(svaddr.sun_path) - 1);
 
-  // connect the active socket(sockfd) to the listening socket(server)
+  // active request
+  // int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
   if(connect(sfd, (struct sockaddr*)&svaddr, sizeof(struct sockaddr_un)) == -1) {
     perror("connect");
     exit(1);
@@ -39,5 +43,16 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  // response
+  if((num = read(sfd, buf, BUF_SIZE)) == -1) {
+    perror("read");
+  }
+
+  // echo msg to client
+  if(write(STDOUT_FILENO, buf, num) == -1) {
+    perror("write");
+  }
+  write(STDOUT_FILENO, "\n", 1);
+  
   return 0;
 }

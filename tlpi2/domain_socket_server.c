@@ -54,16 +54,18 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
 
+    // receive request
     while((numRead = read(cfd, buf, BUF_SIZE)) > 0) {
       if(numRead == -1) {
         perror("read");
         exit(1);
       }
-      if(write(STDOUT_FILENO, buf, numRead) != numRead) {
+
+      // send response
+      if(write(cfd, buf, numRead) != numRead) {
         perror("write");
         exit(1);
       }
-      write(STDOUT_FILENO, "\n", 1);
     }
 
     if(close(cfd) == -1) {
@@ -71,4 +73,7 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
   }
+
+  remove(addr.sun_path);
+  return 0;
 }
