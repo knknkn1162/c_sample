@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
   char client_queue_name[CLIENT_FIFO_NAME_LEN];
 
   if((serverMqd = mq_open(SERVER_QUEUE, O_CREAT | O_RDONLY, S_IRUSR | S_IWUSR)) == (mqd_t)-1) {
-    perror("mq_open");
+    perror("[server]mq_open server");
     exit(1);
   }
 
@@ -70,14 +70,15 @@ int main(int argc, char *argv[]) {
     }
 
     // retrieve pid
-    snprintf(client_queue_name, CLIENT_FIFO_NAME_LEN, CLIENT_FIFO_TEMPLATE, (long)info.si_pid);
-    if((clientMqd = mq_open(client_queue_name, O_RDONLY)) == (mqd_t)-1) {
-      perror("mq_open");
+    snprintf(client_queue_name, CLIENT_QUEUE_NAME_LEN, CLIENT_QUEUE_TEMPLATE, (long)info.si_pid);
+    printf("[server] client_queue: %s\n", client_queue_name);
+    if((clientMqd = mq_open(client_queue_name, O_WRONLY)) == (mqd_t)-1) {
+      perror("[server]mq_open client");
       exit(1);
     }
 
-    if(mq_send(clientMqd, buf, strlen(buf), 0) == -1) {
-      perror("mq_send");
+    if(mq_send(clientMqd, buf, numRead, 0) == -1) {
+      perror("[server] mq_send");
       exit(1);
     }
     if(mq_close(clientMqd) == -1) {
