@@ -24,6 +24,7 @@ int main(int argc, char *argv[]) {
   }
 
   // remove sock_file if existed
+  // Note that after the server terminates, the socket pathname continues to exist. This is why the server uses remove() to remove any existing instance of the socket pathname before calling bind().
   if(remove(SOCK_PATH) == -1 && errno != ENOENT) {
     perror("remove");
     exit(1);
@@ -62,6 +63,7 @@ int main(int argc, char *argv[]) {
         perror("write");
         exit(1);
       }
+      write(STDOUT_FILENO, "\n", 1);
     }
 
     if(close(cfd) == -1) {
