@@ -26,8 +26,9 @@ int main(int argc, char *argv[]) {
   memset(&svaddr, 0, sizeof(struct sockaddr_in));
   svaddr.sin_family = AF_INET;
   svaddr.sin_port = htons(PORT_NUM);
-  svaddr.sin_addr.s_addr = INADDR_ANY;
+  svaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
+  // passive
   if(bind(sfd, (struct sockaddr*)&svaddr, sizeof(struct sockaddr_in)) == -1) {
     perror("bind");
     exit(1);
@@ -35,6 +36,7 @@ int main(int argc, char *argv[]) {
 
   while(1) {
     socklen_t len = sizeof(struct sockaddr_in);
+    printf("[server] wait request\n");
     num = recvfrom(sfd, buf, REQ_MSG_SIZE, 0, (struct sockaddr*)&claddr, &len);
     if(num == -1) {
       perror("recvfrom");
@@ -46,7 +48,7 @@ int main(int argc, char *argv[]) {
       printf("Couldn't convert \n");
       exit(1);
     }
-    printf("claddrStr: %s, port: %u", claddrStr, ntohs(claddr.sin_port));
+    printf("[server]claddrStr: %s, port: %u\n", claddrStr, ntohs(claddr.sin_port));
 
     if(sendto(sfd, buf, num, 0, (struct sockaddr*)&claddr, len) != num) {
       perror("sendto");
