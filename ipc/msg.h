@@ -29,6 +29,10 @@
 #define CLIENT_SOCK_TEMPLATE "/tmp/client.%ld"
 #define BACKLOG 5
 
+
+// for internet domain socket
+#define PORT_NUM 50002
+
 #define REQ_MSG_SIZE PATH_MAX
 struct request {
 #ifdef SYSTEM_V_MESSAGE
