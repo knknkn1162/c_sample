@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  // no use
+  // no longer use
   if(mq_close(serverMqd) == -1) {
     perror("mq_close");
     exit(1);
