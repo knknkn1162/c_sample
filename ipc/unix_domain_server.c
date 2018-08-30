@@ -53,11 +53,6 @@ int main(int argc, char *argv[]) {
 
     // receive request
     while((numRead = read(cfd, buf, RESP_MSG_SIZE)) > 0) {
-      if(numRead == -1) {
-        perror("read");
-        exit(1);
-      }
-
       // send response
       if(write(cfd, buf, numRead) != numRead) {
         perror("write");
