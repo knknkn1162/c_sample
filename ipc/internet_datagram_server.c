@@ -21,12 +21,6 @@ int main(int argc, char *argv[]) {
   struct addrinfo *result, *rp;
   char port[10];
 
-  // int socket(int domain, int type, int protocol);
-  /* sfd = socket(AF_INET, SOCK_DGRAM, 0); */
-  /* if(sfd == -1) { */
-    /* perror("socket"); */
-    /* exit(1); */
-  /* } */
 
   // call getaddrinfo
   memset(&hints, 0, sizeof(struct addrinfo));
@@ -45,6 +39,7 @@ int main(int argc, char *argv[]) {
 
   for(rp = result; rp != NULL; rp = rp->ai_next) {
     int optval = 1;
+    printf("rp: ai_family: %d, socktype: %d, protocol: %d\n", rp->ai_family, rp->ai_socktype, rp->ai_protocol);
     sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
     if(sfd == -1) {
       continue;
@@ -58,7 +53,13 @@ int main(int argc, char *argv[]) {
       break;
     }
   }
-
+  freeaddrinfo(result);
+  // int socket(int domain, int type, int protocol);
+  /* sfd = socket(AF_INET, SOCK_DGRAM, 0); */
+  /* if(sfd == -1) { */
+    /* perror("socket"); */
+    /* exit(1); */
+  /* } */
   /* memset(&svaddr, 0, sizeof(struct sockaddr_in)); */
   /* svaddr.sin_family = AF_INET; */
   /* svaddr.sin_port = htons(PORT_NUM); */
