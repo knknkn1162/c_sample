@@ -16,6 +16,7 @@ int main(int argc, char *argv[]) {
   int sfd, cfd;
   char port[10];
   char buf[REQ_MSG_SIZE];
+
   if(argc > 1) {
     fprintf(stderr, "usage error\n");
     exit(1);
@@ -45,13 +46,14 @@ int main(int argc, char *argv[]) {
   }
 
   for(rp = result; rp != NULL; rp = rp->ai_next) {
-    int optval;
+    int optval = 1;
+    printf("rp: ai_family: %d, socktype: %d, protocol: %d\n", rp->ai_family, rp->ai_socktype, rp->ai_protocol);
     sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
     if(sfd == -1) {
       continue;
     }
 
-    if(setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval))) {
+    if(setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) == -1) {
       perror("setsockopt");
       exit(1);
     }
@@ -86,18 +88,21 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
+    // for display
     if(getnameinfo((struct sockaddr*)&claddr, addrlen, host, NI_MAXHOST, service, NI_MAXSERV, 0) == 0) {
       printf("connection from %s, %s\n", host, service);
     } else {
-      printf("connection unknown");
+      printf("connection unknown\n");
     }
 
+    printf("[server] read request\n");
     while((num = read(cfd, buf, REQ_MSG_SIZE)) > 0) {
       // send response
       if(write(cfd, buf, num) != num) {
         perror("write");
         exit(1);
       }
+      printf("[server] send message (%d)\n", num);
     }
 
     if(close(cfd) == -1) {
