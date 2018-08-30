@@ -9,10 +9,11 @@
 #include <stdlib.h>
 #include "msg.h"
 #include <string.h>
+#include <signal.h>
 
 
 int main(int argc, char *argv[]) {
-  struct sockaddr_in svaddr, claddr;
+  struct sockaddr_in claddr;
   int sfd;
   ssize_t num;
   char buf[REQ_MSG_SIZE];
@@ -20,7 +21,15 @@ int main(int argc, char *argv[]) {
   struct addrinfo hints;
   struct addrinfo *result, *rp;
   char port[10];
+  struct sigaction sa;
 
+  sigemptyset(&sa.sa_flags);
+  sa.sa_handler = SIG_IGN;
+  sa.sa_mask = 0;
+  if(sigaction(SIGPIPE, &sa, NULL) == -1) {
+    perror("sigaction");
+    exit(1);
+  }
 
   // call getaddrinfo
   memset(&hints, 0, sizeof(struct addrinfo));
