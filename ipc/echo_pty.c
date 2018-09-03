@@ -71,6 +71,8 @@ int main(int argc, char *argv[]) {
     int maxfd;
     char buf[BUF_SIZE];
 
+
+    //ttySetRaw(STDIN_FILENO, &ttyOrig);
     atexit(ttyReset);
 
     FD_ZERO(&inFds);
@@ -80,7 +82,6 @@ int main(int argc, char *argv[]) {
 
     while(1) {
       tmp_inFds = inFds;
-      fprintf(stderr, "before select\n");
       if(select(maxfd, &tmp_inFds, NULL, NULL, NULL) == -1) {
         perror("select");
         continue;
