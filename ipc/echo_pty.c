@@ -69,7 +69,6 @@ int main(void) {
     dup2(slaveFd, STDOUT_FILENO);
     dup2(slaveFd, STDERR_FILENO);
 
-    // never reaches!!
     while(1) {
       int numRead;
       char resp[BUF_SIZE] = {};
@@ -86,6 +85,7 @@ int main(void) {
         exit(1);
       }
     }
+    // never reaches!
     perror("execlp");
     exit(1);
 
