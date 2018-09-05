@@ -5,8 +5,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define FD_SETSIZE 30
 #define LISTENQ 50
+#define BUF_SIZE 64
 
 int main(int argc, char *argv[]) {
   fd_set rset, rset_tmp;
@@ -45,20 +45,68 @@ int main(int argc, char *argv[]) {
   FD_SET(listenfd, &rset_tmp);
 
   while(1) {
+    int nready;
     rset = rset_tmp;
-    if(select(maxfd, &rset, NULL, NULL, NULL) == -1) {
+    char buf[BUF_SIZE];
+    // return the number of file descriptors contained in the three returned descriptor sets
+    if((nready = select(maxfd, &rset, NULL, NULL, NULL)) == -1) {
       perror("select");
       exit(1);
     }
     if(FD_ISSET(listenfd, &rset)) {
+      clilen = sizeof(cliaddr);
+      if((connfd = accept(listenfd, (struct sockaddr*)&cliaddr, &clilen)) == -1){
+        perror("accept");
+        exit(1);
+      }
+      for(i = 0; i < FD_SETSIZE; i++) {
+        if(client[i] < 0) {
+          client[i] = connfd;
+          break;
+        }
+      }
+      if(i == FD_SETSIZE) {
+        perror("too many clients");
+        exit(1);
+      }
       // FD_SET in connfd
+      FD_SET(connfd, &rset_tmp);
+      if(connfd+1 > maxfd) {
+        maxfd = connfd+1;
+      }
+      if(i > maxi) {
+        maxi = i;
+      }
+      // if no more readable descriptors, continue
+      if(--nready <= 0) {
+        continue;
+      }
     }
 
     for(i = 0; i <= maxi; i++) {
+      int n;
       if((sockfd = client[i]) < 0) continue;
       if(FD_ISSET(sockfd, &rset)) {
-        // each client
+        // if client sends EOF
+        if((n = read(sockfd, buf, BUF_SIZE)) == 0) {
+          close(sockfd);
+          FD_CLR(sockfd, &rset_tmp);
+          client[i] = -1;
+        } else if (n == -1) {
+          perror("read");
+          exit(1);
+        } else {
+          if(write(sockfd, buf, n) != n) {
+            perror("write");
+            exit(1);
+          }
+          if(--nready <= 0) {
+            break;
+          }
+        }
       }
     }
-  }
+  } // end select
+
+  return 0;
 }
