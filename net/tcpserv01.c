@@ -64,6 +64,8 @@ int main(int argc, char *argv[]) {
         perror("close");
         exit(1);
       }
+
+      // 7. SIGCHLD signal is sent to the parent when the server child terminates
       exit(0);
     }
     if(close(connfd) == -1) {
@@ -77,14 +79,27 @@ void str_echo(int sockfd) {
   ssize_t n;
   char buf[BUF_SIZE];
   
+  char line[BUF_SIZE];
+  // when the server TCP receives the FIN, the read returns 0.
   while((n = read(sockfd, buf, BUF_SIZE)) > 0) {
-    if(writen(sockfd, buf, n) < 0) {
+    long arg1, arg2;
+    if(sscanf(buf, "%ld%ld", &arg1, &arg2) == 2) {
+      snprintf(line, sizeof(line), "%ld\n", arg1+arg2);
+    } else {
+      snprintf(line, sizeof(line), "input error\n");
+    }
+    if(writen(sockfd, line, strlen(line)) < 0) {
       if(errno == EINTR) {
         continue;
       }
       exit(1);
     }
   }
+  // 5. server exits
+  // 6. FIN server->client
+  // 6.2 ACK client->server
+  // 6.3 connection is completely terminated
+  // client: [TIME_WAIT], server: [CLOSED]
 }
 
 

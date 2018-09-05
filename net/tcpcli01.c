@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
   }
 
 
+  // 1. returns null pointer
   while(fgets(req, BUF_SIZE, stdin) != NULL) {
     if(writen(sockfd, req, strlen(req)) == -1) {
       perror("writen");
@@ -52,6 +53,12 @@ int main(int argc, char *argv[]) {
     }
 
   }
+
+  // 2. call exit
+  return 0;
+  // 3.close all open descriptors(client socket is closed by the kernel)
+  // 3.2 client sends FIN to the server, which the server TCP responds with an ACK. This is the first half of the TCP connection termination sequence.
+  // server[CLOSE_WAIT], client[FIN_WAIT_2]
 
 }
 
