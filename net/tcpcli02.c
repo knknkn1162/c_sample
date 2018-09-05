@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
   int sockfd;
   struct sockaddr_in servaddr;
   char buf[BUF_SIZE];
-  fd_set rset, rset_rtmp;
+  fd_set rset;
   int maxfd;
   int eof_flag = 0;
 
@@ -59,13 +59,14 @@ int main(int argc, char *argv[]) {
     if(FD_ISSET(sockfd, &rset)) {
       if((num = read(sockfd, buf, BUF_SIZE)) == 0) {
         if(eof_flag == 1) {
+          fprintf(stderr, "[client] sockfd EOF and exit\n");
           break;
         } else {
           perror("read");
           exit(1);
         }
       }
-      if(write(sockfd, buf, num) != num) {
+      if(write(STDOUT_FILENO, buf, num) != num) {
         perror("write");
         exit(1);
       }
@@ -73,21 +74,24 @@ int main(int argc, char *argv[]) {
 
     if(FD_ISSET(STDIN_FILENO, &rset)) {
       if((num = read(STDIN_FILENO, buf, BUF_SIZE)) == 0) {
+        // Ctrl-D EOF end
         eof_flag = 1;
+        // close one-half of the TCP connection.
+        // We want to send a FIN to the server, telling it we have finished sending data, but leave the socket descriptor open for reading.
+        // EOF on input doesn't imply that we have finished reading from the socket!!
         if(shutdown(sockfd, SHUT_WR) == -1) {
           perror("shutdown");
           exit(1);
         }
+        fprintf(stderr, "shutdown\n");
         continue;
       }
-
       if(writen(sockfd, buf, num) == -1) {
         perror("writen");
         exit(1);
       }
     }
   }
-  
   return 0;
 
 }

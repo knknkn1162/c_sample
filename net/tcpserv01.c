@@ -78,17 +78,10 @@ int main(int argc, char *argv[]) {
 void str_echo(int sockfd) {
   ssize_t n;
   char buf[BUF_SIZE];
-  
-  char line[BUF_SIZE];
   // when the server TCP receives the FIN, the read returns 0.
   while((n = read(sockfd, buf, BUF_SIZE)) > 0) {
-    long arg1, arg2;
-    if(sscanf(buf, "%ld%ld", &arg1, &arg2) == 2) {
-      snprintf(line, sizeof(line), "%ld\n", arg1+arg2);
-    } else {
-      snprintf(line, sizeof(line), "input error\n");
-    }
-    if(writen(sockfd, line, strlen(line)) < 0) {
+    //fprintf(stderr, "[server] buf: %s\n", buf);
+    if(writen(sockfd, buf, n) < 0) {
       if(errno == EINTR) {
         continue;
       }
