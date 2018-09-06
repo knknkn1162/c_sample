@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <arpa/inet.h>
-
+#include <netdb.h>
 
 #define BUF_SIZE 64
 
@@ -31,6 +31,7 @@ int main(int argc, char *argv[]) {
     int num;
     socklen_t len;
     struct sockaddr_in addr;
+    char host[NI_MAXHOST], service[NI_MAXSERV];
     socklen_t addrlen = sizeof(struct sockaddr_in);
     if(sendto(sockfd, req, strlen(req), 0, (struct sockaddr*)&servaddr, sizeof(servaddr)) == -1) {
       perror("[client] sendto");
@@ -42,7 +43,10 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
 
-    fprintf(stderr, "[client] sendto %d -> %d\n", ntohs(addr.sin_port), ntohs(servaddr.sin_port));
+    fprintf(stderr, "[client] sendto %d -> %d from getsockname\n", ntohs(addr.sin_port), ntohs(servaddr.sin_port));
+    if (getnameinfo((struct sockaddr*)&addr, addrlen, host, NI_MAXHOST, service, NI_MAXSERV, NI_NUMERICSERV) == 0) {
+      fprintf(stderr, "(%s, %s) from getnameinfo\n", host, service);
+    }
     if((num = recvfrom(sockfd, resp, BUF_SIZE, 0, (struct sockaddr*)&cliaddr, &len)) == -1) {
       perror("recvfrom");
       exit(1);
