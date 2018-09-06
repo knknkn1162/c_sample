@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
           fprintf(stderr, "[client] sockfd EOF and exit\n");
           break;
         } else {
-          perror("read");
+          perror("[client] read");
           exit(1);
         }
       }
