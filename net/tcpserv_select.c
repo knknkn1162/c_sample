@@ -71,6 +71,7 @@ int main(int argc, char *argv[]) {
       }
       // FD_SET in connfd
       FD_SET(connfd, &rset_tmp);
+      fprintf(stderr, "set connfd in %d: port: %d", i, cliaddr.sin_port);
       if(connfd+1 > maxfd) {
         maxfd = connfd+1;
       }
@@ -89,6 +90,7 @@ int main(int argc, char *argv[]) {
       if(FD_ISSET(sockfd, &rset)) {
         // if client sends EOF
         if((n = read(sockfd, buf, BUF_SIZE)) == 0) {
+          fprintf(stderr, "EOF in %d\n", i);
           close(sockfd);
           FD_CLR(sockfd, &rset_tmp);
           client[i] = -1;
