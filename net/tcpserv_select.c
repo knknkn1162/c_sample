@@ -49,6 +49,7 @@ int main(int argc, char *argv[]) {
     rset = rset_tmp;
     char buf[BUF_SIZE];
     // return the number of file descriptors contained in the three returned descriptor sets
+    fprintf(stderr, "ready select..\n");
     if((nready = select(maxfd, &rset, NULL, NULL, NULL)) == -1) {
       perror("select");
       exit(1);
@@ -71,7 +72,7 @@ int main(int argc, char *argv[]) {
       }
       // FD_SET in connfd
       FD_SET(connfd, &rset_tmp);
-      fprintf(stderr, "set connfd in %d: port: %d", i, cliaddr.sin_port);
+      fprintf(stderr, "set connfd in %d: port: %d\n", i, cliaddr.sin_port);
       if(connfd+1 > maxfd) {
         maxfd = connfd+1;
       }
