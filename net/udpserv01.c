@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     socklen_t len;
     char msg[BUF_SIZE];
 
-    fprintf(stderr, "recvfrom ready..\n");
+    fprintf(stderr, "[server] recvfrom ready..\n");
     if((num = recvfrom(sockfd, msg, BUF_SIZE, 0, (struct sockaddr*)&cliaddr, &len)) == -1) {
       perror("recvfrom");
       exit(1);

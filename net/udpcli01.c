@@ -44,14 +44,22 @@ int main(int argc, char *argv[]) {
     }
 
     fprintf(stderr, "[client] sendto %d -> %d from getsockname\n", ntohs(addr.sin_port), ntohs(servaddr.sin_port));
-    if (getnameinfo((struct sockaddr*)&addr, addrlen, host, NI_MAXHOST, service, NI_MAXSERV, NI_NUMERICSERV) == 0) {
-      fprintf(stderr, "(%s, %s) from getnameinfo\n", host, service);
+    if(getnameinfo((struct sockaddr*)&addr, addrlen, host, NI_MAXHOST, service, NI_MAXSERV, NI_NUMERICSERV) == 0) {
+      fprintf(stderr, "[client] (%s, %s) from getnameinfo\n", host, service);
+    } else {
+      fprintf(stderr, "[client] unknown\n");
     }
+
     if((num = recvfrom(sockfd, resp, BUF_SIZE, 0, (struct sockaddr*)&cliaddr, &len)) == -1) {
       perror("recvfrom");
       exit(1);
     }
     fprintf(stderr, "[client] recvfrom port: %d\n", ntohs(cliaddr.sin_port));
+    if(getnameinfo((struct sockaddr*)&cliaddr, addrlen, host, NI_MAXHOST, service, NI_MAXSERV, NI_NUMERICSERV) == 0) {
+      fprintf(stderr, "[client] (%s, %s) from getnameinfo\n", host, service);
+    } else {
+      fprintf(stderr, "[client] unknown\n");
+    }
 
     resp[num] = '\0';
     if(fputs(resp, stdout) == EOF) {
